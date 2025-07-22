@@ -6,13 +6,13 @@ let targetTiltX = 0, targetTiltY = 0;
 let currentEffectIndex = 0;
 let mesh;
 let isLenticularMode = false;
-let currentAngleStep = 3; // 0-6の7段階、3が中央
-let currentVerticalStep = 3; // 0-6の7段階、3が中央
+let currentAngleStep = 4; // 0-9の10段階、4が中央
+let currentVerticalStep = 4; // 0-9の10段階、4が中央
 let currentImageAspectRatio = 1.0; // 現在の画像のアスペクト比
 
-// 7段階の角度名
-const angleNames = ['左々', '左+', '左', '中央', '右', '右+', '右々'];
-const verticalNames = ['上々', '上+', '上', '中央', '下', '下+', '下々'];
+// 10段階の角度名
+const angleNames = ['左極', '左々', '左+', '左-', '左', '中央', '右', '右-', '右+', '右々'];
+const verticalNames = ['上極', '上々', '上+', '上-', '上', '中央', '下', '下-', '下+', '下々'];
 
 const vertexShader = `
     varying vec2 vUv;
@@ -47,9 +47,9 @@ const fragmentShader1 = `
     }
     
     void main() {
-        // 49段階に対応したUVオフセット計算（7×7）
-        float hOffset = float(angleStep - 3) * 0.05; // 水平方向
-        float vOffset = float(verticalStep - 3) * 0.04; // 垂直方向
+        // 100段階に対応したUVオフセット計算（10×10）
+        float hOffset = float(angleStep - 4) * 0.04; // 水平方向（-4から+5の範囲）
+        float vOffset = float(verticalStep - 4) * 0.04; // 垂直方向（-4から+5の範囲）
         vec2 shiftedUV = vUv + vec2(hOffset, vOffset);
         shiftedUV.x = fract(shiftedUV.x);
         shiftedUV.y = fract(shiftedUV.y);
@@ -120,9 +120,9 @@ const fragmentShader2 = `
     }
     
     void main() {
-        // 49段階に対応したUVオフセット計算（7×7）
-        float hOffset = float(angleStep - 3) * 0.05; // 水平方向
-        float vOffset = float(verticalStep - 3) * 0.04; // 垂直方向
+        // 100段階に対応したUVオフセット計算（10×10）
+        float hOffset = float(angleStep - 4) * 0.04; // 水平方向（-4から+5の範囲）
+        float vOffset = float(verticalStep - 4) * 0.04; // 垂直方向（-4から+5の範囲）
         vec2 shiftedUV = vUv + vec2(hOffset, vOffset);
         shiftedUV.x = fract(shiftedUV.x);
         shiftedUV.y = fract(shiftedUV.y);
@@ -192,9 +192,9 @@ const fragmentShader3 = `
     }
     
     void main() {
-        // 49段階に対応したUVオフセット計算（7×7）
-        float hOffset = float(angleStep - 3) * 0.05; // 水平方向
-        float vOffset = float(verticalStep - 3) * 0.04; // 垂直方向
+        // 100段階に対応したUVオフセット計算（10×10）
+        float hOffset = float(angleStep - 4) * 0.04; // 水平方向（-4から+5の範囲）
+        float vOffset = float(verticalStep - 4) * 0.04; // 垂直方向（-4から+5の範囲）
         vec2 shiftedUV = vUv + vec2(hOffset, vOffset);
         shiftedUV.x = fract(shiftedUV.x);
         shiftedUV.y = fract(shiftedUV.y);
@@ -257,9 +257,9 @@ const fragmentShader4 = `
     }
     
     void main() {
-        // 49段階に対応したUVオフセット計算（7×7）
-        float hOffset = float(angleStep - 3) * 0.05; // 水平方向
-        float vOffset = float(verticalStep - 3) * 0.04; // 垂直方向
+        // 100段階に対応したUVオフセット計算（10×10）
+        float hOffset = float(angleStep - 4) * 0.04; // 水平方向（-4から+5の範囲）
+        float vOffset = float(verticalStep - 4) * 0.04; // 垂直方向（-4から+5の範囲）
         vec2 shiftedUV = vUv + vec2(hOffset, vOffset);
         shiftedUV.x = fract(shiftedUV.x);
         shiftedUV.y = fract(shiftedUV.y);
@@ -334,9 +334,9 @@ const lenticularShader1 = `
     }
     
     void main() {
-        // 49段階に対応したUVオフセット計算（7×7）
-        float hOffset = float(angleStep - 3) * 0.05; // 水平方向
-        float vOffset = float(verticalStep - 3) * 0.04; // 垂直方向
+        // 100段階に対応したUVオフセット計算（10×10）
+        float hOffset = float(angleStep - 4) * 0.04; // 水平方向（-4から+5の範囲）
+        float vOffset = float(verticalStep - 4) * 0.04; // 垂直方向（-4から+5の範囲）
         vec2 shiftedUV = vUv + vec2(hOffset, vOffset);
         shiftedUV.x = fract(shiftedUV.x);
         shiftedUV.y = fract(shiftedUV.y);
@@ -510,12 +510,12 @@ function createDefaultTexture() {
     canvas.height = 512;
     const ctx = canvas.getContext('2d');
     
-    // 49段階表示用のグリッド背景（7×7）
-    const cellWidth = 512 / 7; // ≈ 73
-    const cellHeight = 512 / 7; // ≈ 73
+    // 100段階表示用のグリッド背景（10×10）
+    const cellWidth = 512 / 10; // 51.2
+    const cellHeight = 512 / 10; // 51.2
     
-    for(let v = 0; v < 7; v++) {
-        for(let h = 0; h < 7; h++) {
+    for(let v = 0; v < 10; v++) {
+        for(let h = 0; h < 10; h++) {
             const x = h * cellWidth;
             const y = v * cellHeight;
             const hue = (h * 50 + v * 30) % 360;
@@ -541,10 +541,10 @@ function createDefaultTexture() {
     ctx.textAlign = 'center';
     ctx.fillText('HOLOGRAM', 256, 220);
     ctx.font = '14px Arial';
-    ctx.fillText('49段階変化（7×7）', 256, 250);
+    ctx.fillText('100段階変化（10×10）', 256, 250);
     ctx.fillText('水平+垂直対応', 256, 270);
     ctx.font = '12px Arial';
-    ctx.fillText('Complete Grid Control', 256, 300);
+    ctx.fillText('Ultra Fine Control', 256, 300);
     
     imageTexture = new THREE.CanvasTexture(canvas);
 }
@@ -622,13 +622,13 @@ function handleOrientation(event) {
     
     console.log('Device orientation:', { gamma, beta });
     
-    // 左右7段階判定（gammaメイン）
-    let hStep = Math.floor((gamma + 60) / 120 * 7);
-    hStep = Math.max(0, Math.min(6, hStep));
+    // 左右10段階判定（gammaメイン）
+    let hStep = Math.floor((gamma + 60) / 120 * 10);
+    hStep = Math.max(0, Math.min(9, hStep));
     
-    // 上下7段階判定 (betaの前後傾きを使用)
-    let vStep = Math.floor((beta + 60) / 120 * 7);
-    vStep = Math.max(0, Math.min(6, vStep));
+    // 上下10段階判定 (betaの前後傾きを使用)
+    let vStep = Math.floor((beta + 60) / 120 * 10);
+    vStep = Math.max(0, Math.min(9, vStep));
     
     let updated = false;
     if(hStep !== currentAngleStep) {
@@ -663,13 +663,13 @@ function handleMouseMove(event) {
     const mouseX = (event.clientX / window.innerWidth - 0.5) * 2;
     const mouseY = (event.clientY / window.innerHeight - 0.5) * 2;
     
-    // 左右7段階判定（X軸）
-    let hStep = Math.floor((mouseX + 1) / 2 * 7);
-    hStep = Math.max(0, Math.min(6, hStep));
+    // 左右10段階判定（X軸）
+    let hStep = Math.floor((mouseX + 1) / 2 * 10);
+    hStep = Math.max(0, Math.min(9, hStep));
     
-    // 上下7段階判定（Y軸）
-    let vStep = Math.floor((mouseY + 1) / 2 * 7);
-    vStep = Math.max(0, Math.min(6, vStep));
+    // 上下10段階判定（Y軸）
+    let vStep = Math.floor((mouseY + 1) / 2 * 10);
+    vStep = Math.max(0, Math.min(9, vStep));
     
     let updated = false;
     if(hStep !== currentAngleStep) {
