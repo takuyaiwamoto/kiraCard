@@ -491,34 +491,43 @@ function createDefaultTexture() {
     canvas.height = 512;
     const ctx = canvas.getContext('2d');
     
-    // 5角度対応の背景
+    // 5×5マトリックス対応の背景
     const cellWidth = 512 / 5; // 102.4
+    const cellHeight = 512 / 5; // 102.4
     
+    // 背景グリッド
     for(let h = 0; h < 5; h++) {
-        const x = h * cellWidth;
-        const hue = h * 72; // 0, 72, 144, 216, 288
-        
-        ctx.fillStyle = `hsl(${hue}, 80%, 60%)`;
-        ctx.fillRect(x, 0, cellWidth, 512);
-        
-        // 各セクションに角度名
-        ctx.fillStyle = 'white';
-        ctx.font = 'bold 20px Arial';
-        ctx.textAlign = 'center';
-        ctx.fillText(angleNames[h], x + cellWidth/2, 100);
-        ctx.font = '14px Arial';
-        ctx.fillText(angleImageFiles[h], x + cellWidth/2, 130);
+        for(let v = 0; v < 5; v++) {
+            const x = h * cellWidth;
+            const y = v * cellHeight;
+            const hue = (h * 72 + v * 36) % 360;
+            const lightness = 40 + ((h + v) * 6) % 40;
+            
+            ctx.fillStyle = `hsl(${hue}, 70%, ${lightness}%)`;
+            ctx.fillRect(x, y, cellWidth, cellHeight);
+            
+            // 対応する画像ファイル名を表示
+            const fileName = imageMatrix[h][v];
+            if (fileName) {
+                ctx.fillStyle = 'white';
+                ctx.font = 'bold 10px Arial';
+                ctx.textAlign = 'center';
+                ctx.fillText(fileName.replace('.png', ''), x + cellWidth/2, y + cellHeight/2);
+            }
+        }
     }
     
     // 中央にタイトル
     ctx.fillStyle = 'rgba(0, 0, 0, 0.8)';
-    ctx.fillRect(0, 200, 512, 112);
+    ctx.fillRect(128, 200, 256, 112);
     ctx.fillStyle = 'white';
-    ctx.font = 'bold 32px Arial';
+    ctx.font = 'bold 24px Arial';
     ctx.textAlign = 'center';
-    ctx.fillText('DRAG & DROP', 256, 240);
-    ctx.font = '18px Arial';
-    ctx.fillText('5角度画像をアップロード', 256, 280);
+    ctx.fillText('5×5 MATRIX', 256, 230);
+    ctx.font = '14px Arial';
+    ctx.fillText('上下左右角度対応', 256, 250);
+    ctx.font = '12px Arial';
+    ctx.fillText('Drag & Drop Images', 256, 280);
     
     imageTexture = new THREE.CanvasTexture(canvas);
 }
