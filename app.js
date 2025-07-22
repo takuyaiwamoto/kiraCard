@@ -550,6 +550,8 @@ function loadAllImages() {
     
     // 5つの角度画像を自動で読み込み試行
     const loader = new THREE.TextureLoader();
+    loader.setCrossOrigin('anonymous'); // CORS対応
+    
     for (let i = 0; i < 5; i++) {
         const fileName = angleImageFiles[i];
         console.log('Attempting to load:', fileName);
@@ -578,8 +580,36 @@ function loadAllImages() {
                 console.log('Loading progress for', fileName, ':', progress);
             },
             function(error) {
-                console.log('Could not load', fileName, '(this is normal if file does not exist)');
+                console.error('Failed to load', fileName, ':', error);
+                console.log('Trying alternative loading method for', fileName);
                 imageTextures[fileName] = null;
+                
+                // 代替手段：Image要素を使って読み込み確認
+                const img = new Image();
+                img.crossOrigin = 'anonymous';
+                img.onload = function() {
+                    console.log('Alternative load successful for', fileName);
+                    // 再度Three.jsで読み込み試行
+                    const loader2 = new THREE.TextureLoader();
+                    loader2.setCrossOrigin('anonymous');
+                    loader2.load(
+                        fileName,
+                        function(texture) {
+                            console.log('Retry successful for', fileName);
+                            texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
+                            texture.minFilter = texture.magFilter = THREE.LinearFilter;
+                            imageTextures[fileName] = texture;
+                            
+                            if (fileName === angleImageFiles[currentAngleStep]) {
+                                selectCurrentImage();
+                            }
+                        }
+                    );
+                };
+                img.onerror = function() {
+                    console.log('Alternative load also failed for', fileName);
+                };
+                img.src = fileName;
             }
         );
     }
