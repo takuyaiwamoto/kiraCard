@@ -5,6 +5,11 @@ let tiltX = 0, tiltY = 0;
 let targetTiltX = 0, targetTiltY = 0;
 let currentEffectIndex = 0;
 let mesh;
+let isLenticularMode = false;
+let currentAngleStep = 3; // 0-6の7段階、3が中央
+
+// 7段階の角度名
+const angleNames = ['左々', '左+', '左', '中央', '右', '右+', '右々'];
 
 const vertexShader = `
     varying vec2 vUv;
@@ -298,7 +303,98 @@ const fragmentShader4 = `
     }
 `;
 
+// レンチキュラー版シェーダー1: ビックリマンホログラム
+const lenticularShader1 = `
+    uniform sampler2D tDiffuse;
+    uniform float time;
+    uniform int angleStep; // 0-6の7段階
+    uniform vec2 resolution;
+    
+    varying vec2 vUv;
+    varying vec3 vNormal;
+    varying vec3 vViewPosition;
+    
+    vec3 hsv2rgb(vec3 c) {
+        vec4 K = vec4(1.0, 2.0 / 3.0, 1.0 / 3.0, 3.0);
+        vec3 p = abs(fract(c.xxx + K.xyz) * 6.0 - K.www);
+        return c.z * mix(K.xxx, clamp(p - K.xxx, 0.0, 1.0), c.y);
+    }
+    
+    void main() {
+        // 7段階に対応したUVオフセット計算
+        float stepOffset = float(angleStep - 3) * 0.05;
+        vec2 shiftedUV = vUv + vec2(stepOffset, 0.0);
+        shiftedUV.x = fract(shiftedUV.x);
+        
+        vec4 texColor = texture2D(tDiffuse, shiftedUV);
+        
+        // ビックリマン特有の放射状パターン
+        vec2 center = vec2(0.5, 0.5);
+        vec2 toCenter = vUv - center;
+        float angle = atan(toCenter.y, toCenter.x);
+        float radius = length(toCenter);
+        
+        // 角度ステップによって放射パターンが回転
+        float rotationOffset = float(angleStep) * 0.52;
+        
+        // 放射状の虹色ストライプ
+        float stripeCount = 24.0;
+        float stripeAngle = (angle + rotationOffset) * stripeCount / (2.0 * 3.14159);
+        float stripe = fract(stripeAngle + time * 0.1);
+        
+        // 同心円パターン
+        float ringCount = 8.0;
+        float ring = fract(radius * ringCount - time * 0.5 + float(angleStep) * 0.2);
+        
+        // 角度ステップによる色相シフト
+        float hueShift = float(angleStep) * 0.14;
+        float hue1 = fract(stripe * 0.15 + time * 0.05 + hueShift);
+        float hue2 = fract(ring * 0.2 + time * 0.03 + hueShift);
+        
+        vec3 color1 = hsv2rgb(vec3(hue1, 0.9, 1.0));
+        vec3 color2 = hsv2rgb(vec3(hue2, 0.8, 1.0));
+        
+        // 金属光沢
+        float metallic = pow(stripe, 2.0) * pow(ring, 2.0);
+        float metallicIntensity = 0.3 + abs(float(angleStep - 3)) * 0.1;
+        vec3 metallicColor = mix(vec3(1.0, 0.9, 0.5), vec3(1.0, 1.0, 1.0), metallic);
+        
+        // スターバースト効果
+        float burst = 0.0;
+        for(float i = 0.0; i < 6.0; i++) {
+            float burstAngle = i * 3.14159 / 3.0 + time * 0.5 + rotationOffset;
+            vec2 burstDir = vec2(cos(burstAngle), sin(burstAngle));
+            float burstDot = abs(dot(normalize(toCenter), burstDir));
+            burst += pow(burstDot, 20.0) * (1.0 - radius);
+        }
+        
+        // キラキラ粒子
+        vec2 sparkleGrid = vUv * (30.0 + float(angleStep) * 2.0);
+        vec2 sparkleId = floor(sparkleGrid);
+        float sparkleRand = fract(sin(dot(sparkleId, vec2(12.9898, 78.233))) * 43758.5453);
+        float sparklePhase = sparkleRand + time * 2.0 + float(angleStep) * 0.5;
+        float sparkle = smoothstep(0.95, 1.0, sin(sparklePhase) * sin(sparklePhase * 1.3));
+        sparkle *= step(0.7, sparkleRand);
+        
+        float angleFactor = abs(float(angleStep - 3)) / 3.0;
+        float tiltEffect = sin(angle + rotationOffset) * cos(radius * 10.0);
+        
+        vec3 finalColor = texColor.rgb;
+        finalColor = mix(finalColor, color1, stripe * 0.3 * (0.5 + abs(tiltEffect) * 0.5));
+        finalColor = mix(finalColor, color2, ring * 0.2);
+        finalColor += metallicColor * metallic * metallicIntensity;
+        finalColor += vec3(burst) * (0.6 + angleFactor * 0.4);
+        finalColor += vec3(sparkle) * (0.8 + angleFactor * 0.8);
+        
+        float brightness = 1.0 + angleFactor * 0.3;
+        finalColor *= brightness;
+        
+        gl_FragColor = vec4(finalColor, texColor.a);
+    }
+`;
+
 const fragmentShaders = [fragmentShader1, fragmentShader2, fragmentShader3, fragmentShader4];
+const lenticularShaders = [lenticularShader1, fragmentShader2, fragmentShader3, lenticularShader1]; // 他も後で追加
 const effectNames = ['レインボーホログラム', 'プリズムダイヤモンド', 'オーロラウェーブ', 'ビックリマンホログラム'];
 
 function init() {
@@ -332,6 +428,7 @@ function init() {
             tDiffuse: { value: imageTexture },
             time: { value: 0 },
             tilt: { value: new THREE.Vector2(0, 0) },
+            angleStep: { value: currentAngleStep },
             resolution: { value: new THREE.Vector2(window.innerWidth, window.innerHeight) }
         },
         vertexShader: vertexShader,
@@ -349,9 +446,36 @@ function init() {
     setupDeviceMotion();
     setupFileUpload();
     setupEffectButtons();
+    setupModeButtons();
     
     // アニメーションループ開始
     animate();
+}
+
+function setupModeButtons() {
+    const modeButton = document.getElementById('modeButton');
+    const modeName = document.getElementById('modeName');
+    const angleDisplay = document.getElementById('angleDisplay');
+    
+    modeButton.addEventListener('click', () => {
+        isLenticularMode = !isLenticularMode;
+        
+        if (isLenticularMode) {
+            modeButton.textContent = '通常モード';
+            modeName.textContent = 'レンチキュラーモード';
+            angleDisplay.style.display = 'block';
+            updateAngleDisplay();
+        } else {
+            modeButton.textContent = 'レンチキュラーモード';
+            modeName.textContent = '通常モード';
+            angleDisplay.style.display = 'none';
+        }
+        
+        // シェーダーを更新
+        const shaderArray = isLenticularMode ? lenticularShaders : fragmentShaders;
+        hologramMaterial.fragmentShader = shaderArray[currentEffectIndex];
+        hologramMaterial.needsUpdate = true;
+    });
 }
 
 function setupEffectButtons() {
@@ -364,8 +488,9 @@ function setupEffectButtons() {
         currentEffectIndex = (currentEffectIndex + 1) % fragmentShaders.length;
         effectName.textContent = effectNames[currentEffectIndex];
         
-        // 新しいシェーダーでマテリアルを更新
-        hologramMaterial.fragmentShader = fragmentShaders[currentEffectIndex];
+        // 現在のモードに応じてシェーダーを選択
+        const shaderArray = isLenticularMode ? lenticularShaders : fragmentShaders;
+        hologramMaterial.fragmentShader = shaderArray[currentEffectIndex];
         hologramMaterial.needsUpdate = true;
     });
 }
@@ -423,18 +548,56 @@ function setupDeviceMotion() {
 function handleOrientation(event) {
     // beta: -180 to 180 (前後の傾き)
     // gamma: -90 to 90 (左右の傾き)
-    targetTiltX = (event.gamma || 0) / 90;
-    targetTiltY = (event.beta || 0) / 180;
+    const gamma = event.gamma || 0;
+    const beta = event.beta || 0;
     
-    // 範囲制限
-    targetTiltX = Math.max(-1, Math.min(1, targetTiltX));
-    targetTiltY = Math.max(-1, Math.min(1, targetTiltY));
+    if (isLenticularMode) {
+        // レンチキュラーモード: 7段階判定
+        const combinedAngle = gamma + (beta > 90 || beta < -90 ? (beta > 0 ? beta - 180 : beta + 180) * 0.5 : beta * 0.5);
+        let step = Math.floor((combinedAngle + 60) / 120 * 7);
+        step = Math.max(0, Math.min(6, step));
+        
+        if(step !== currentAngleStep) {
+            currentAngleStep = step;
+            updateAngleDisplay();
+        }
+    } else {
+        // 通常モード: スムーズな傾き
+        targetTiltX = gamma / 90;
+        targetTiltY = beta / 180;
+        
+        // 範囲制限
+        targetTiltX = Math.max(-1, Math.min(1, targetTiltX));
+        targetTiltY = Math.max(-1, Math.min(1, targetTiltY));
+    }
 }
 
 function handleMouseMove(event) {
-    // PCでのマウス操作でも動作確認できるように
-    targetTiltX = (event.clientX / window.innerWidth - 0.5) * 2;
-    targetTiltY = (event.clientY / window.innerHeight - 0.5) * 2;
+    const mouseX = (event.clientX / window.innerWidth - 0.5) * 2;
+    const mouseY = (event.clientY / window.innerHeight - 0.5) * 2;
+    
+    if (isLenticularMode) {
+        // レンチキュラーモード: 7段階判定
+        const combinedMouse = mouseX + mouseY * 0.5;
+        let step = Math.floor((combinedMouse + 1) / 2 * 7);
+        step = Math.max(0, Math.min(6, step));
+        
+        if(step !== currentAngleStep) {
+            currentAngleStep = step;
+            updateAngleDisplay();
+        }
+    } else {
+        // 通常モード: スムーズな傾き
+        targetTiltX = mouseX;
+        targetTiltY = mouseY;
+    }
+}
+
+function updateAngleDisplay() {
+    const angleDisplay = document.getElementById('angleDisplay');
+    if (angleDisplay) {
+        angleDisplay.textContent = `角度: ${angleNames[currentAngleStep]}`;
+    }
 }
 
 function setupFileUpload() {
@@ -473,13 +636,22 @@ function onWindowResize() {
 function animate() {
     requestAnimationFrame(animate);
     
-    // スムーズな傾き遷移
-    tiltX += (targetTiltX - tiltX) * 0.1;
-    tiltY += (targetTiltY - tiltY) * 0.1;
+    if (!isLenticularMode) {
+        // 通常モード: スムーズな傾き遷移
+        tiltX += (targetTiltX - tiltX) * 0.1;
+        tiltY += (targetTiltY - tiltY) * 0.1;
+    }
     
     // uniform更新
     hologramMaterial.uniforms.time.value += 0.01;
-    hologramMaterial.uniforms.tilt.value.set(tiltX, tiltY);
+    
+    if (isLenticularMode) {
+        // レンチキュラーモード: 角度ステップを送信
+        hologramMaterial.uniforms.angleStep.value = currentAngleStep;
+    } else {
+        // 通常モード: 傾きを送信
+        hologramMaterial.uniforms.tilt.value.set(tiltX, tiltY);
+    }
     
     renderer.render(scene, camera);
 }

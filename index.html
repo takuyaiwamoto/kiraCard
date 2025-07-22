@@ -102,6 +102,45 @@
             font-weight: bold;
         }
         
+        .mode-button {
+            background: linear-gradient(45deg, #ff6b35, #f7931e);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            font-size: 14px;
+            border-radius: 20px;
+            cursor: pointer;
+            transition: transform 0.3s;
+            margin: 5px 0;
+            display: block;
+            width: 100%;
+        }
+        
+        .mode-button:hover {
+            transform: scale(1.05);
+        }
+        
+        .mode-button:active {
+            transform: scale(0.95);
+        }
+        
+        .mode-name {
+            font-size: 12px;
+            text-align: center;
+            margin-top: 5px;
+            color: #ff6b35;
+            font-weight: bold;
+        }
+        
+        .angle-display {
+            font-size: 12px;
+            text-align: center;
+            margin-top: 10px;
+            color: #00ff88;
+            font-weight: bold;
+            display: none;
+        }
+        
         .info {
             font-size: 12px;
             opacity: 0.8;
@@ -127,10 +166,17 @@
             </button>
             <input type="file" id="fileInput" accept="image/*">
             
+            <button class="mode-button" id="modeButton">
+                レンチキュラーモード
+            </button>
+            <div class="mode-name" id="modeName">通常モード</div>
+            
             <button class="effect-button" id="effectButton">
                 エフェクトを変更
             </button>
             <div class="effect-name" id="effectName">レインボーホログラム</div>
+            
+            <div class="angle-display" id="angleDisplay">角度: 中央</div>
             
             <div class="info">
                 スマートフォンを傾けて<br>
