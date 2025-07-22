@@ -162,9 +162,18 @@
         <button class="minimize-button" onclick="toggleMinimize()">+</button>
         <div class="control-content">
             <button class="upload-button" onclick="document.getElementById('fileInput').click()">
-                画像をアップロード
+                画像をアップロード（単発）
             </button>
             <input type="file" id="fileInput" accept="image/*">
+            
+            <div class="info">
+                ドラッグ&ドロップで角度別画像アップロード：<br>
+                ・ front.png → 中央<br>
+                ・ -25.png → 左大<br>
+                ・ -12.png → 左小<br>
+                ・ 12.png → 右小<br>
+                ・ 25.png → 右大<br>
+            </div>
             
             <button class="mode-button" id="modeButton">
                 レンチキュラーモード
@@ -179,7 +188,7 @@
             <div class="angle-display" id="angleDisplay">角度: 中央</div>
             
             <div class="info">
-                スマートフォンを傾けて<br>
+                スマートフォンを僾けて<br>
                 ホログラム効果を体験！<br>
                 <br>
                 <a href="lenticular-cube.html" style="color: #00ff88; text-decoration: none;">
