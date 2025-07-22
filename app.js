@@ -775,7 +775,7 @@ function updateMeshAspectRatio(aspectRatio) {
     if (mesh) {
         // ウィンドウサイズを考慮してサイズを計算
         const windowAspect = window.innerWidth / window.innerHeight;
-        const padding = 0.7; // 30%の余白を確保（70%のサイズ）
+        const padding = 0.5; // 50%の余白を確保（50%のサイズ）
         
         // カメラの視野角75度、距離5での表示可能範囲を計算
         const fov = 75 * Math.PI / 180; // ラジアンに変換
