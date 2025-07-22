@@ -32,6 +32,7 @@ const fragmentShader1 = `
     uniform float time;
     uniform vec2 tilt;
     uniform int angleStep;
+    uniform int verticalStep;
     uniform vec2 resolution;
     
     varying vec2 vUv;
@@ -104,6 +105,7 @@ const fragmentShader2 = `
     uniform float time;
     uniform vec2 tilt;
     uniform int angleStep;
+    uniform int verticalStep;
     uniform vec2 resolution;
     
     varying vec2 vUv;
@@ -171,6 +173,7 @@ const fragmentShader3 = `
     uniform float time;
     uniform vec2 tilt;
     uniform int angleStep;
+    uniform int verticalStep;
     uniform vec2 resolution;
     
     varying vec2 vUv;
