@@ -11,6 +11,10 @@ let currentAngleStep = 2; // 0-4の5段階、2が中央
 let currentVerticalStep = 2; // 0-4の5段階、2が中央
 let currentImageAspectRatio = 1.0; // 現在の画像のアスペクト比
 
+// キャリブレーション用のオフセット値
+let gammaOffset = 0; // 左右角度のオフセット
+let betaOffset = 0; // 上下角度のオフセット
+
 // 3×3=9段階の画像ファイル配列
 const imageMatrix = [
     // [上大, 上小, 中央, 下小, 下大]
@@ -687,16 +691,20 @@ function handleOrientation(event) {
     
     console.log('Device orientation:', { gamma, beta });
     
+    // キャリブレーション済み角度を計算
+    const calibratedGamma = gamma - gammaOffset;
+    const calibratedBeta = beta - betaOffset;
+    
     // 左右5段階判定（gammaメイン）- 非常に緩やかに設定
-    let hStep = Math.floor((gamma + 40) / 80 * 5);
+    let hStep = Math.floor((calibratedGamma + 40) / 80 * 5);
     hStep = Math.max(0, Math.min(4, hStep));
     
     // 上下5段階判定 (betaの前後傾きを使用) - 極めてシビアに設定
-    let vStep = Math.floor((beta + 120) / 240 * 5);
+    let vStep = Math.floor((calibratedBeta + 120) / 240 * 5);
     vStep = Math.max(0, Math.min(4, vStep));
     
     // 左右に傾いている時は上下変化を無視（より敏感に検出）
-    const isHorizontalTilted = Math.abs(gamma) > 6; // 左右に6°以上傾いている
+    const isHorizontalTilted = Math.abs(calibratedGamma) > 6; // 左右に6°以上傾いている
     if (isHorizontalTilted) {
         vStep = currentVerticalStep; // 上下は現在の値を維持
         console.log('Horizontal tilt detected, ignoring vertical changes. Gamma:', gamma);
@@ -1037,6 +1045,51 @@ function animate() {
     }
     
     renderer.render(scene, camera);
+}
+
+// キャリブレーション関数
+function calibrateCenter() {
+    // 最新の角度値を取得してオフセットとして設定
+    if (window.DeviceOrientationEvent) {
+        // 現在の角度をオフセットに設定（次回のイベントで適用される）
+        // 一時的にイベントハンドラーを設定してキャリブレーション
+        const calibrateHandler = function(event) {
+            const gamma = event.gamma || 0;
+            const beta = event.beta || 0;
+            
+            gammaOffset = gamma;
+            betaOffset = beta;
+            
+            console.log('Calibration completed:', { gammaOffset, betaOffset });
+            
+            // キャリブレーション完了の視覚的フィードバック
+            const button = document.getElementById('calibrate-button');
+            button.textContent = '✓';
+            button.style.background = 'rgba(0, 255, 136, 0.3)';
+            
+            setTimeout(() => {
+                button.textContent = 'CAL';
+                button.style.background = 'rgba(255, 255, 255, 0.1)';
+            }, 1000);
+            
+            // 一回だけ実行するためにリスナーを削除
+            window.removeEventListener('deviceorientation', calibrateHandler);
+        };
+        
+        window.addEventListener('deviceorientation', calibrateHandler, { once: true });
+    } else {
+        console.log('Device orientation not supported');
+        
+        // デバイス向きが使えない場合の視覚的フィードバック
+        const button = document.getElementById('calibrate-button');
+        button.textContent = '✗';
+        button.style.background = 'rgba(255, 0, 0, 0.3)';
+        
+        setTimeout(() => {
+            button.textContent = 'CAL';
+            button.style.background = 'rgba(255, 255, 255, 0.1)';
+        }, 1000);
+    }
 }
 
 // 初期化
