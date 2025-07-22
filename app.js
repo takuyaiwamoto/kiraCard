@@ -7,11 +7,11 @@ let currentEffectIndex = 0;
 let mesh;
 let isLenticularMode = false;
 let currentAngleStep = 3; // 0-6の7段階、3が中央
-let currentVerticalStep = 1; // 0-2の3段階、1が中央
+let currentVerticalStep = 3; // 0-6の7段階、3が中央
 
 // 7段階の角度名
 const angleNames = ['左々', '左+', '左', '中央', '右', '右+', '右々'];
-const verticalNames = ['上', '中央', '下'];
+const verticalNames = ['上々', '上+', '上', '中央', '下', '下+', '下々'];
 
 const vertexShader = `
     varying vec2 vUv;
@@ -46,9 +46,9 @@ const fragmentShader1 = `
     }
     
     void main() {
-        // 21段階に対応したUVオフセット計算（7×3）
+        // 49段階に対応したUVオフセット計算（7×7）
         float hOffset = float(angleStep - 3) * 0.05; // 水平方向
-        float vOffset = float(verticalStep - 1) * 0.03; // 垂直方向
+        float vOffset = float(verticalStep - 3) * 0.04; // 垂直方向
         vec2 shiftedUV = vUv + vec2(hOffset, vOffset);
         shiftedUV.x = fract(shiftedUV.x);
         shiftedUV.y = fract(shiftedUV.y);
@@ -119,9 +119,9 @@ const fragmentShader2 = `
     }
     
     void main() {
-        // 21段階に対応したUVオフセット計算（7×3）
+        // 49段階に対応したUVオフセット計算（7×7）
         float hOffset = float(angleStep - 3) * 0.05; // 水平方向
-        float vOffset = float(verticalStep - 1) * 0.03; // 垂直方向
+        float vOffset = float(verticalStep - 3) * 0.04; // 垂直方向
         vec2 shiftedUV = vUv + vec2(hOffset, vOffset);
         shiftedUV.x = fract(shiftedUV.x);
         shiftedUV.y = fract(shiftedUV.y);
@@ -191,9 +191,9 @@ const fragmentShader3 = `
     }
     
     void main() {
-        // 21段階に対応したUVオフセット計算（7×3）
+        // 49段階に対応したUVオフセット計算（7×7）
         float hOffset = float(angleStep - 3) * 0.05; // 水平方向
-        float vOffset = float(verticalStep - 1) * 0.03; // 垂直方向
+        float vOffset = float(verticalStep - 3) * 0.04; // 垂直方向
         vec2 shiftedUV = vUv + vec2(hOffset, vOffset);
         shiftedUV.x = fract(shiftedUV.x);
         shiftedUV.y = fract(shiftedUV.y);
@@ -256,9 +256,9 @@ const fragmentShader4 = `
     }
     
     void main() {
-        // 21段階に対応したUVオフセット計算（7×3）
+        // 49段階に対応したUVオフセット計算（7×7）
         float hOffset = float(angleStep - 3) * 0.05; // 水平方向
-        float vOffset = float(verticalStep - 1) * 0.03; // 垂直方向
+        float vOffset = float(verticalStep - 3) * 0.04; // 垂直方向
         vec2 shiftedUV = vUv + vec2(hOffset, vOffset);
         shiftedUV.x = fract(shiftedUV.x);
         shiftedUV.y = fract(shiftedUV.y);
@@ -333,9 +333,9 @@ const lenticularShader1 = `
     }
     
     void main() {
-        // 21段階に対応したUVオフセット計算（7×3）
+        // 49段階に対応したUVオフセット計算（7×7）
         float hOffset = float(angleStep - 3) * 0.05; // 水平方向
-        float vOffset = float(verticalStep - 1) * 0.03; // 垂直方向
+        float vOffset = float(verticalStep - 3) * 0.04; // 垂直方向
         vec2 shiftedUV = vUv + vec2(hOffset, vOffset);
         shiftedUV.x = fract(shiftedUV.x);
         shiftedUV.y = fract(shiftedUV.y);
@@ -437,10 +437,13 @@ function init() {
         side: THREE.DoubleSide
     });
     
-    // 平面ジオメトリの作成
+    // 平面ジオメトリの作成（アスペクト比は後で調整）
     const geometry = new THREE.PlaneGeometry(4, 4, 32, 32);
     mesh = new THREE.Mesh(geometry, hologramMaterial);
     scene.add(mesh);
+    
+    // 初期アスペクト比の設定
+    updateMeshAspectRatio(1.0); // デフォルトテクスチャは正方形
     
     // イベントリスナーの設定
     window.addEventListener('resize', onWindowResize);
@@ -504,40 +507,41 @@ function createDefaultTexture() {
     canvas.height = 512;
     const ctx = canvas.getContext('2d');
     
-    // 21段階表示用のグリッド背景（7×3）
+    // 49段階表示用のグリッド背景（7×7）
     const cellWidth = 512 / 7; // ≈ 73
-    const cellHeight = 512 / 3; // ≈ 170
+    const cellHeight = 512 / 7; // ≈ 73
     
-    for(let v = 0; v < 3; v++) {
+    for(let v = 0; v < 7; v++) {
         for(let h = 0; h < 7; h++) {
             const x = h * cellWidth;
             const y = v * cellHeight;
-            const hue = (h * 60 + v * 20) % 360;
-            const lightness = 60 + v * 10; // 上から下へ明度変化
+            const hue = (h * 50 + v * 30) % 360;
+            const lightness = 40 + ((h + v) * 4) % 40; // グラデーション
             
             ctx.fillStyle = `hsl(${hue}, 80%, ${lightness}%)`;
             ctx.fillRect(x, y, cellWidth, cellHeight);
             
-            // 各セクションにテキスト
+            // 各セクションに小さなテキスト
             ctx.fillStyle = 'white';
-            ctx.font = 'bold 16px Arial';
+            ctx.font = 'bold 8px Arial';
             ctx.textAlign = 'center';
-            ctx.fillText(`${angleNames[h]}`, x + cellWidth/2, y + cellHeight/2 - 10);
-            ctx.font = '12px Arial';
-            ctx.fillText(`${verticalNames[v]}`, x + cellWidth/2, y + cellHeight/2 + 10);
+            ctx.fillText(`${angleNames[h]}`, x + cellWidth/2, y + cellHeight/2 - 8);
+            ctx.fillText(`${verticalNames[v]}`, x + cellWidth/2, y + cellHeight/2 + 8);
         }
     }
     
     // 中央にタイトル
     ctx.fillStyle = 'rgba(0, 0, 0, 0.8)';
-    ctx.fillRect(128, 200, 256, 112);
+    ctx.fillRect(128, 180, 256, 152);
     ctx.fillStyle = 'white';
     ctx.font = 'bold 28px Arial';
     ctx.textAlign = 'center';
-    ctx.fillText('HOLOGRAM', 256, 230);
+    ctx.fillText('HOLOGRAM', 256, 220);
     ctx.font = '14px Arial';
-    ctx.fillText('21段階変化（7×3）', 256, 250);
+    ctx.fillText('49段階変化（7×7）', 256, 250);
     ctx.fillText('水平+垂直対応', 256, 270);
+    ctx.font = '12px Arial';
+    ctx.fillText('Complete Grid Control', 256, 300);
     
     imageTexture = new THREE.CanvasTexture(canvas);
 }
@@ -578,10 +582,9 @@ function handleOrientation(event) {
     let hStep = Math.floor((gamma + 60) / 120 * 7);
     hStep = Math.max(0, Math.min(6, hStep));
     
-    // 上下3段階判定 (betaの前後傾きを使用、より敏感に)
-    let vStep = 1; // デフォルト中央
-    if (beta < -15) vStep = 0; // 上 (手前に傾ける)
-    else if (beta > 15) vStep = 2; // 下 (向こうに傾ける)
+    // 上下7段階判定 (betaの前後傾きを使用)
+    let vStep = Math.floor((beta + 60) / 120 * 7);
+    vStep = Math.max(0, Math.min(6, vStep));
     
     let updated = false;
     if(hStep !== currentAngleStep) {
@@ -620,10 +623,9 @@ function handleMouseMove(event) {
     let hStep = Math.floor((mouseX + 1) / 2 * 7);
     hStep = Math.max(0, Math.min(6, hStep));
     
-    // 上下3段階判定（Y軸、より敏感に）
-    let vStep = 1; // デフォルト中央
-    if (mouseY < -0.2) vStep = 0; // 上
-    else if (mouseY > 0.2) vStep = 2; // 下
+    // 上下7段階判定（Y軸）
+    let vStep = Math.floor((mouseY + 1) / 2 * 7);
+    vStep = Math.max(0, Math.min(6, vStep));
     
     let updated = false;
     if(hStep !== currentAngleStep) {
@@ -688,6 +690,11 @@ function handleFileUpload(event) {
                 texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
                 texture.minFilter = texture.magFilter = THREE.LinearFilter;
                 
+                // アスペクト比を計算して適用
+                const aspectRatio = texture.image.width / texture.image.height;
+                console.log('Image aspect ratio:', aspectRatio, 'dimensions:', texture.image.width, 'x', texture.image.height);
+                updateMeshAspectRatio(aspectRatio);
+                
                 imageTexture = texture;
                 hologramMaterial.uniforms.tDiffuse.value = texture;
                 hologramMaterial.needsUpdate = true; // シェーダーの更新を強制
@@ -695,7 +702,7 @@ function handleFileUpload(event) {
                 if (loading) {
                     loading.style.display = 'none';
                 }
-                console.log('Material texture updated and shader refreshed');
+                console.log('Material texture updated and shader refreshed with aspect ratio:', aspectRatio);
             },
             function(progress) {
                 console.log('Loading progress:', progress);
@@ -717,6 +724,19 @@ function handleFileUpload(event) {
     };
     
     reader.readAsDataURL(file);
+}
+
+function updateMeshAspectRatio(aspectRatio) {
+    if (mesh) {
+        const maxSize = 4;
+        if (aspectRatio > 1) {
+            // 横長の画像
+            mesh.scale.set(maxSize, maxSize / aspectRatio, 1);
+        } else {
+            // 縦長の画像
+            mesh.scale.set(maxSize * aspectRatio, maxSize, 1);
+        }
+    }
 }
 
 function onWindowResize() {
