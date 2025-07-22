@@ -710,12 +710,12 @@ function handleOrientation(event) {
         console.log('Horizontal tilt detected, prioritizing horizontal movement. Gamma:', calibratedGamma);
     }
     
-    // 上下に傾いている状態（少しでも）で左右の大きな変化があれば左右を優先
-    const isVerticalTilted = Math.abs(calibratedBeta) > 3; // 上下に3°以上傾いている（より敏感に）
-    const largeHorizontalMovement = Math.abs(calibratedGamma - (currentAngleStep - 2) * 16) > 8; // 左右に8°以上の大きな動き
-    if (isVerticalTilted && largeHorizontalMovement) {
+    // 上下に少しでも傾いていても左右の変化があれば左右を優先
+    const isVerticalTilted = Math.abs(calibratedBeta) > 2; // 上下に2°以上傾いている
+    const horizontalMovement = Math.abs(calibratedGamma) > 3; // 左右に3°以上動いている
+    if (isVerticalTilted && horizontalMovement) {
         vStep = currentVerticalStep; // 上下は現在の値を維持して左右優先
-        console.log('Vertical tilted but large horizontal movement detected, prioritizing horizontal. Beta:', calibratedBeta, 'Gamma:', calibratedGamma);
+        console.log('Vertical tilted but horizontal movement detected, prioritizing horizontal. Beta:', calibratedBeta, 'Gamma:', calibratedGamma);
     }
     
     let updated = false;
