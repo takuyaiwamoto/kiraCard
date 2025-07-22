@@ -394,7 +394,7 @@ const lenticularShader1 = `
 `;
 
 const fragmentShaders = [fragmentShader1, fragmentShader2, fragmentShader3, fragmentShader4];
-const lenticularShaders = [lenticularShader1, fragmentShader2, fragmentShader3, lenticularShader1]; // 他も後で追加
+const lenticularShaders = [lenticularShader1, lenticularShader1, lenticularShader1, lenticularShader1]; // 暫定的に全てレンチキュラー版使用
 const effectNames = ['レインボーホログラム', 'プリズムダイヤモンド', 'オーロラウェーブ', 'ビックリマンホログラム'];
 
 function init() {
@@ -459,6 +459,7 @@ function setupModeButtons() {
     
     modeButton.addEventListener('click', () => {
         isLenticularMode = !isLenticularMode;
+        console.log('Lenticular mode:', isLenticularMode);
         
         if (isLenticularMode) {
             modeButton.textContent = '通常モード';
@@ -473,6 +474,7 @@ function setupModeButtons() {
         
         // シェーダーを更新
         const shaderArray = isLenticularMode ? lenticularShaders : fragmentShaders;
+        console.log('Switching to shader:', shaderArray[currentEffectIndex] === lenticularShader1 ? 'lenticular' : 'normal');
         hologramMaterial.fragmentShader = shaderArray[currentEffectIndex];
         hologramMaterial.needsUpdate = true;
     });
@@ -501,22 +503,29 @@ function createDefaultTexture() {
     canvas.height = 512;
     const ctx = canvas.getContext('2d');
     
-    // グラデーション背景
-    const gradient = ctx.createLinearGradient(0, 0, 512, 512);
-    gradient.addColorStop(0, '#ff006e');
-    gradient.addColorStop(0.5, '#8338ec');
-    gradient.addColorStop(1, '#3a86ff');
-    ctx.fillStyle = gradient;
-    ctx.fillRect(0, 0, 512, 512);
+    // 7段階表示用のグラデーション背景
+    for(let i = 0; i < 7; i++) {
+        const x = i * 73; // 512/7 ≈ 73
+        const hue = i * 60; // 0, 60, 120, 180, 240, 300, 360
+        ctx.fillStyle = `hsl(${hue}, 80%, 60%)`;
+        ctx.fillRect(x, 0, 73, 512);
+        
+        // 各セクションにテキスト
+        ctx.fillStyle = 'white';
+        ctx.font = 'bold 24px Arial';
+        ctx.textAlign = 'center';
+        ctx.fillText(angleNames[i], x + 36, 256);
+    }
     
-    // テキスト
+    // 中央にタイトル
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+    ctx.fillRect(0, 200, 512, 112);
     ctx.fillStyle = 'white';
-    ctx.font = 'bold 48px Arial';
+    ctx.font = 'bold 32px Arial';
     ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText('HOLOGRAM', 256, 200);
-    ctx.font = '24px Arial';
-    ctx.fillText('画像をアップロードしてください', 256, 300);
+    ctx.fillText('HOLOGRAM', 256, 240);
+    ctx.font = '18px Arial';
+    ctx.fillText('レンチキュラーモードで7段階変化', 256, 280);
     
     imageTexture = new THREE.CanvasTexture(canvas);
 }
@@ -584,6 +593,7 @@ function handleMouseMove(event) {
         
         if(step !== currentAngleStep) {
             currentAngleStep = step;
+            console.log('Mouse angle step changed to:', step, angleNames[step]);
             updateAngleDisplay();
         }
     } else {
