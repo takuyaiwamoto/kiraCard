@@ -699,8 +699,8 @@ function handleOrientation(event) {
     let hStep = Math.floor((calibratedGamma + 40) / 80 * 5);
     hStep = Math.max(0, Math.min(4, hStep));
     
-    // 上下5段階判定 (betaの前後傾きを使用) - 極めてシビアに設定
-    let vStep = Math.floor((calibratedBeta + 120) / 240 * 5);
+    // 上下5段階判定 (betaの前後傾きを使用) - より緩く設定
+    let vStep = Math.floor((calibratedBeta + 60) / 120 * 5);
     vStep = Math.max(0, Math.min(4, vStep));
     
     // 左右に傾いている時は上下変化を無視（より敏感に検出）
@@ -1060,7 +1060,14 @@ function calibrateCenter() {
             gammaOffset = gamma;
             betaOffset = beta;
             
-            console.log('Calibration completed:', { gammaOffset, betaOffset });
+            // キャリブレーション後に中央ポジション（front）に設定
+            currentAngleStep = 2; // 水平中央（front位置）
+            currentVerticalStep = 2; // 垂直中央
+            
+            console.log('Calibration completed:', { gammaOffset, betaOffset, position: 'front' });
+            
+            // 画像をfrontに更新
+            selectCurrentImage();
             
             // キャリブレーション完了の視覚的フィードバック
             const button = document.getElementById('calibrate-button');
