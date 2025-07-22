@@ -48,14 +48,8 @@ const fragmentShader1 = `
     }
     
     void main() {
-        // 50段階に対応したUVオフセット計算（5×10）
-        float hOffset = float(angleStep - 2) * 0.12; // 水平方向（-2から+2の範囲、より大きな変化）
-        float vOffset = float(verticalStep - 4) * 0.04; // 垂直方向（-4から+5の範囲）
-        vec2 shiftedUV = vUv + vec2(hOffset, vOffset);
-        shiftedUV.x = fract(shiftedUV.x);
-        shiftedUV.y = fract(shiftedUV.y);
-        
-        vec4 texColor = texture2D(tDiffuse, shiftedUV);
+        // 画像は固定位置で表示（オフセットなし）
+        vec4 texColor = texture2D(tDiffuse, vUv);
         
         // 視線ベクトルの正規化
         vec3 viewDir = normalize(vViewPosition);
@@ -121,23 +115,17 @@ const fragmentShader2 = `
     }
     
     void main() {
-        // 50段階に対応したUVオフセット計算（5×10）
-        float hOffset = float(angleStep - 2) * 0.12; // 水平方向（-2から+2の範囲、より大きな変化）
-        float vOffset = float(verticalStep - 4) * 0.04; // 垂直方向（-4から+5の範囲）
-        vec2 shiftedUV = vUv + vec2(hOffset, vOffset);
-        shiftedUV.x = fract(shiftedUV.x);
-        shiftedUV.y = fract(shiftedUV.y);
-        
-        vec4 texColor = texture2D(tDiffuse, shiftedUV);
+        // 画像は固定位置で表示（オフセットなし）
+        vec4 texColor = texture2D(tDiffuse, vUv);
         vec3 viewDir = normalize(vViewPosition);
         
         // プリズム効果の強度計算
         float prismStrength = abs(float(angleStep - 3)) * 0.01 + length(tilt) * 0.02;
         
         // RGBチャンネルを分離してずらす
-        vec2 redOffset = shiftedUV + vec2(prismStrength * tilt.x, prismStrength * tilt.y);
-        vec2 greenOffset = shiftedUV;
-        vec2 blueOffset = shiftedUV - vec2(prismStrength * tilt.x, prismStrength * tilt.y);
+        vec2 redOffset = vUv + vec2(prismStrength * tilt.x, prismStrength * tilt.y);
+        vec2 greenOffset = vUv;
+        vec2 blueOffset = vUv - vec2(prismStrength * tilt.x, prismStrength * tilt.y);
         
         vec3 chromatic;
         chromatic.r = texture2D(tDiffuse, redOffset).r;
@@ -193,18 +181,12 @@ const fragmentShader3 = `
     }
     
     void main() {
-        // 50段階に対応したUVオフセット計算（5×10）
-        float hOffset = float(angleStep - 2) * 0.12; // 水平方向（-2から+2の範囲、より大きな変化）
-        float vOffset = float(verticalStep - 4) * 0.04; // 垂直方向（-4から+5の範囲）
-        vec2 shiftedUV = vUv + vec2(hOffset, vOffset);
-        shiftedUV.x = fract(shiftedUV.x);
-        shiftedUV.y = fract(shiftedUV.y);
-        
-        vec4 texColor = texture2D(tDiffuse, shiftedUV);
+        // 画像は固定位置で表示（オフセットなし）
+        vec4 texColor = texture2D(tDiffuse, vUv);
         vec3 viewDir = normalize(vViewPosition);
         
         // オーロラのような波動パターン
-        vec2 waveCoord = shiftedUV + tilt * 0.3;
+        vec2 waveCoord = vUv + tilt * 0.3;
         float wave1 = sin(waveCoord.x * 15.0 + time * 2.0 + tilt.x * 5.0) * 0.5 + 0.5;
         float wave2 = sin(waveCoord.y * 12.0 - time * 1.5 + tilt.y * 5.0) * 0.5 + 0.5;
         float wave3 = sin(length(waveCoord - 0.5) * 20.0 - time * 3.0) * 0.5 + 0.5;
@@ -258,14 +240,8 @@ const fragmentShader4 = `
     }
     
     void main() {
-        // 50段階に対応したUVオフセット計算（5×10）
-        float hOffset = float(angleStep - 2) * 0.12; // 水平方向（-2から+2の範囲、より大きな変化）
-        float vOffset = float(verticalStep - 4) * 0.04; // 垂直方向（-4から+5の範囲）
-        vec2 shiftedUV = vUv + vec2(hOffset, vOffset);
-        shiftedUV.x = fract(shiftedUV.x);
-        shiftedUV.y = fract(shiftedUV.y);
-        
-        vec4 texColor = texture2D(tDiffuse, shiftedUV);
+        // 画像は固定位置で表示（オフセットなし）
+        vec4 texColor = texture2D(tDiffuse, vUv);
         
         // グリッド構造の設定
         float gridSize = 16.0; // 16x16のグリッド
@@ -335,14 +311,8 @@ const lenticularShader1 = `
     }
     
     void main() {
-        // 50段階に対応したUVオフセット計算（5×10）
-        float hOffset = float(angleStep - 2) * 0.12; // 水平方向（-2から+2の範囲、より大きな変化）
-        float vOffset = float(verticalStep - 4) * 0.04; // 垂直方向（-4から+5の範囲）
-        vec2 shiftedUV = vUv + vec2(hOffset, vOffset);
-        shiftedUV.x = fract(shiftedUV.x);
-        shiftedUV.y = fract(shiftedUV.y);
-        
-        vec4 texColor = texture2D(tDiffuse, shiftedUV);
+        // 画像は固定位置で表示（オフセットなし）
+        vec4 texColor = texture2D(tDiffuse, vUv);
         
         // グリッド構造の設定（角度ステップで変化）
         float gridSize = 12.0 + float(angleStep) * 2.0; // 角度で密度変化
