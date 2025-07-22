@@ -6,12 +6,14 @@ let targetTiltX = 0, targetTiltY = 0;
 let currentEffectIndex = 0;
 let mesh;
 let isLenticularMode = false;
-let currentAngleStep = 4; // 0-9の10段階、4が中央
-let currentVerticalStep = 4; // 0-9の10段階、4が中央
+let currentAngleStep = 2; // 0-4の5段階、2が中央
+let currentVerticalStep = 4; // 0-9の10段階、4が中央（垂直は10段階維持）
 let currentImageAspectRatio = 1.0; // 現在の画像のアスペクト比
+let angleImages = {}; // 角度別の画像を保存
 
-// 10段階の角度名
-const angleNames = ['左極', '左々', '左+', '左-', '左', '中央', '右', '右-', '右+', '右々'];
+// 5段階の角度名と対応するファイル名
+const angleNames = ['左大', '左小', '中央', '右小', '右大'];
+const angleImageFiles = ['-25.png', '-12.png', 'front.png', '+12.png', '+25.png'];
 const verticalNames = ['上極', '上々', '上+', '上-', '上', '中央', '下', '下-', '下+', '下々'];
 
 const vertexShader = `
@@ -47,8 +49,8 @@ const fragmentShader1 = `
     }
     
     void main() {
-        // 100段階に対応したUVオフセット計算（10×10）
-        float hOffset = float(angleStep - 4) * 0.04; // 水平方向（-4から+5の範囲）
+        // 50段階に対応したUVオフセット計算（5×10）
+        float hOffset = float(angleStep - 2) * 0.06; // 水平方向（-2から+2の範囲）
         float vOffset = float(verticalStep - 4) * 0.04; // 垂直方向（-4から+5の範囲）
         vec2 shiftedUV = vUv + vec2(hOffset, vOffset);
         shiftedUV.x = fract(shiftedUV.x);
@@ -120,8 +122,8 @@ const fragmentShader2 = `
     }
     
     void main() {
-        // 100段階に対応したUVオフセット計算（10×10）
-        float hOffset = float(angleStep - 4) * 0.04; // 水平方向（-4から+5の範囲）
+        // 50段階に対応したUVオフセット計算（5×10）
+        float hOffset = float(angleStep - 2) * 0.06; // 水平方向（-2から+2の範囲）
         float vOffset = float(verticalStep - 4) * 0.04; // 垂直方向（-4から+5の範囲）
         vec2 shiftedUV = vUv + vec2(hOffset, vOffset);
         shiftedUV.x = fract(shiftedUV.x);
@@ -192,8 +194,8 @@ const fragmentShader3 = `
     }
     
     void main() {
-        // 100段階に対応したUVオフセット計算（10×10）
-        float hOffset = float(angleStep - 4) * 0.04; // 水平方向（-4から+5の範囲）
+        // 50段階に対応したUVオフセット計算（5×10）
+        float hOffset = float(angleStep - 2) * 0.06; // 水平方向（-2から+2の範囲）
         float vOffset = float(verticalStep - 4) * 0.04; // 垂直方向（-4から+5の範囲）
         vec2 shiftedUV = vUv + vec2(hOffset, vOffset);
         shiftedUV.x = fract(shiftedUV.x);
@@ -257,8 +259,8 @@ const fragmentShader4 = `
     }
     
     void main() {
-        // 100段階に対応したUVオフセット計算（10×10）
-        float hOffset = float(angleStep - 4) * 0.04; // 水平方向（-4から+5の範囲）
+        // 50段階に対応したUVオフセット計算（5×10）
+        float hOffset = float(angleStep - 2) * 0.06; // 水平方向（-2から+2の範囲）
         float vOffset = float(verticalStep - 4) * 0.04; // 垂直方向（-4から+5の範囲）
         vec2 shiftedUV = vUv + vec2(hOffset, vOffset);
         shiftedUV.x = fract(shiftedUV.x);
@@ -334,8 +336,8 @@ const lenticularShader1 = `
     }
     
     void main() {
-        // 100段階に対応したUVオフセット計算（10×10）
-        float hOffset = float(angleStep - 4) * 0.04; // 水平方向（-4から+5の範囲）
+        // 50段階に対応したUVオフセット計算（5×10）
+        float hOffset = float(angleStep - 2) * 0.06; // 水平方向（-2から+2の範囲）
         float vOffset = float(verticalStep - 4) * 0.04; // 垂直方向（-4から+5の範囲）
         vec2 shiftedUV = vUv + vec2(hOffset, vOffset);
         shiftedUV.x = fract(shiftedUV.x);
@@ -510,12 +512,12 @@ function createDefaultTexture() {
     canvas.height = 512;
     const ctx = canvas.getContext('2d');
     
-    // 100段階表示用のグリッド背景（10×10）
-    const cellWidth = 512 / 10; // 51.2
+    // 50段階表示用のグリッド背景（5×10）
+    const cellWidth = 512 / 5; // 102.4
     const cellHeight = 512 / 10; // 51.2
     
     for(let v = 0; v < 10; v++) {
-        for(let h = 0; h < 10; h++) {
+        for(let h = 0; h < 5; h++) {
             const x = h * cellWidth;
             const y = v * cellHeight;
             const hue = (h * 50 + v * 30) % 360;
@@ -541,53 +543,63 @@ function createDefaultTexture() {
     ctx.textAlign = 'center';
     ctx.fillText('HOLOGRAM', 256, 220);
     ctx.font = '14px Arial';
-    ctx.fillText('100段階変化（10×10）', 256, 250);
-    ctx.fillText('水平+垂直対応', 256, 270);
+    ctx.fillText('50段階変化（5×10）', 256, 250);
+    ctx.fillText('角度別画像切替対応', 256, 270);
     ctx.font = '12px Arial';
-    ctx.fillText('Ultra Fine Control', 256, 300);
+    ctx.fillText('Dynamic Image Control', 256, 300);
     
     imageTexture = new THREE.CanvasTexture(canvas);
 }
 
-function loadInitialImage() {
+function loadAngleImages() {
     const loader = new THREE.TextureLoader();
-    loader.load(
-        'myutu.jpg',
-        function(texture) {
-            console.log('Initial image loaded successfully');
-            // テクスチャの設定
-            texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
-            texture.minFilter = texture.magFilter = THREE.LinearFilter;
-            
-            // アスペクト比を計算して適用
-            const aspectRatio = texture.image.width / texture.image.height;
-            currentImageAspectRatio = aspectRatio;
-            console.log('Initial image aspect ratio:', aspectRatio, 'dimensions:', texture.image.width, 'x', texture.image.height);
-            
-            imageTexture = texture;
-            
-            // マテリアルが作成済みの場合は更新
-            if (hologramMaterial) {
-                hologramMaterial.uniforms.tDiffuse.value = texture;
-                hologramMaterial.needsUpdate = true;
-                updateMeshAspectRatio(aspectRatio);
+    let loadedCount = 0;
+    const totalImages = angleImageFiles.length;
+    
+    angleImageFiles.forEach((filename, index) => {
+        loader.load(
+            filename,
+            function(texture) {
+                console.log(`Angle image ${filename} loaded successfully`);
+                // テクスチャの設定
+                texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
+                texture.minFilter = texture.magFilter = THREE.LinearFilter;
+                
+                angleImages[index] = texture;
+                loadedCount++;
+                
+                // 最初の画像（中央：front.png）をデフォルトとして設定
+                if (index === 2) { // front.png
+                    const aspectRatio = texture.image.width / texture.image.height;
+                    currentImageAspectRatio = aspectRatio;
+                    console.log('Front image aspect ratio:', aspectRatio, 'dimensions:', texture.image.width, 'x', texture.image.height);
+                    
+                    imageTexture = texture;
+                    
+                    // マテリアルが作成済みの場合は更新
+                    if (hologramMaterial) {
+                        hologramMaterial.uniforms.tDiffuse.value = texture;
+                        hologramMaterial.needsUpdate = true;
+                        updateMeshAspectRatio(aspectRatio);
+                    }
+                }
+                
+                console.log(`Loaded ${loadedCount}/${totalImages} angle images`);
+            },
+            function(progress) {
+                console.log(`Loading angle image ${filename}:`, progress);
+            },
+            function(error) {
+                console.error(`Error loading angle image ${filename}:`, error);
+                loadedCount++;
             }
-        },
-        function(progress) {
-            console.log('Loading initial image:', progress);
-        },
-        function(error) {
-            console.error('Error loading initial image:', error);
-            // エラーの場合はデフォルトテクスチャを作成
-            createDefaultTexture();
-            currentImageAspectRatio = 1.0;
-            if (hologramMaterial) {
-                hologramMaterial.uniforms.tDiffuse.value = imageTexture;
-                hologramMaterial.needsUpdate = true;
-                updateMeshAspectRatio(1.0);
-            }
-        }
-    );
+        );
+    });
+}
+
+function loadInitialImage() {
+    // 角度別画像を読み込む
+    loadAngleImages();
 }
 
 function setupDeviceMotion() {
@@ -622,9 +634,9 @@ function handleOrientation(event) {
     
     console.log('Device orientation:', { gamma, beta });
     
-    // 左右10段階判定（gammaメイン）
-    let hStep = Math.floor((gamma + 60) / 120 * 10);
-    hStep = Math.max(0, Math.min(9, hStep));
+    // 左右5段階判定（gammaメイン）
+    let hStep = Math.floor((gamma + 60) / 120 * 5);
+    hStep = Math.max(0, Math.min(4, hStep));
     
     // 上下10段階判定 (betaの前後傾きを使用)
     let vStep = Math.floor((beta + 60) / 120 * 10);
@@ -643,6 +655,12 @@ function handleOrientation(event) {
     
     if(updated) {
         console.log('Steps updated:', { hStep, vStep, angles: angleNames[hStep], vertical: verticalNames[vStep] });
+        
+        // 角度に応じて画像を切り替え
+        if (hStep !== undefined && angleImages[hStep]) {
+            switchAngleImage(hStep);
+        }
+        
         if (isLenticularMode) {
             updateAngleDisplay();
         }
@@ -663,9 +681,9 @@ function handleMouseMove(event) {
     const mouseX = (event.clientX / window.innerWidth - 0.5) * 2;
     const mouseY = (event.clientY / window.innerHeight - 0.5) * 2;
     
-    // 左右10段階判定（X軸）
-    let hStep = Math.floor((mouseX + 1) / 2 * 10);
-    hStep = Math.max(0, Math.min(9, hStep));
+    // 左右5段階判定（X軸）
+    let hStep = Math.floor((mouseX + 1) / 2 * 5);
+    hStep = Math.max(0, Math.min(4, hStep));
     
     // 上下10段階判定（Y軸）
     let vStep = Math.floor((mouseY + 1) / 2 * 10);
@@ -684,6 +702,12 @@ function handleMouseMove(event) {
     
     if(updated) {
         console.log('Mouse step changed to:', hStep, angleNames[hStep], '/', vStep, verticalNames[vStep]);
+        
+        // 角度に応じて画像を切り替え
+        if (hStep !== undefined && angleImages[hStep]) {
+            switchAngleImage(hStep);
+        }
+        
         if (isLenticularMode) {
             updateAngleDisplay();
         }
@@ -693,6 +717,18 @@ function handleMouseMove(event) {
         // 通常モードでもスムーズな傾きを保持
         targetTiltX = mouseX;
         targetTiltY = mouseY;
+    }
+}
+
+function switchAngleImage(angleStep) {
+    if (angleImages[angleStep] && hologramMaterial) {
+        console.log(`Switching to image: ${angleImageFiles[angleStep]} (step ${angleStep})`);
+        hologramMaterial.uniforms.tDiffuse.value = angleImages[angleStep];
+        hologramMaterial.needsUpdate = true;
+        
+        // アスペクト比も更新
+        const aspectRatio = angleImages[angleStep].image.width / angleImages[angleStep].image.height;
+        updateMeshAspectRatio(aspectRatio);
     }
 }
 
