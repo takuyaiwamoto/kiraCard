@@ -699,8 +699,8 @@ function handleOrientation(event) {
     let hStep = Math.floor((calibratedGamma + 40) / 80 * 5);
     hStep = Math.max(0, Math.min(4, hStep));
     
-    // 上下5段階判定 (betaの前後傾きを使用) - 左右と同じ閾値で敏感に
-    let vStep = Math.floor((calibratedBeta + 40) / 80 * 5);
+    // 上下5段階判定 (betaの前後傾きを使用) - 更に反応しやすく
+    let vStep = Math.floor((calibratedBeta + 25) / 50 * 5);
     vStep = Math.max(0, Math.min(4, vStep));
     
     // 左右に傾いている時は上下変化を無視（より敏感に検出）
