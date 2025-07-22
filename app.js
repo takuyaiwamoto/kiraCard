@@ -691,8 +691,8 @@ function handleOrientation(event) {
     let hStep = Math.floor((gamma + 40) / 80 * 5);
     hStep = Math.max(0, Math.min(4, hStep));
     
-    // 上下5段階判定 (betaの前後傾きを使用) - きつめに設定
-    let vStep = Math.floor((beta + 60) / 120 * 5);
+    // 上下5段階判定 (betaの前後傾きを使用) - 非常にシビアに設定
+    let vStep = Math.floor((beta + 90) / 180 * 5);
     vStep = Math.max(0, Math.min(4, vStep));
     
     // 左右に傾いている時は上下変化を無視
@@ -752,8 +752,8 @@ function handleMouseMove(event) {
     hStep = Math.max(0, Math.min(4, hStep));
     
     // 上下5段階判定（Y軸）- Y軸は逆転（上が負、下が正）
-    // より狭い範囲で反応するよう調整
-    let vStep = Math.floor((-mouseY * 0.7 + 1) / 2 * 5);
+    // 非常にシビアに設定（より大きな動きが必要）
+    let vStep = Math.floor((-mouseY * 0.4 + 1) / 2 * 5);
     vStep = Math.max(0, Math.min(4, vStep));
     
     // 左右に大きく動いている時は上下変化を無視
