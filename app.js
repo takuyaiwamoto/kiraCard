@@ -272,27 +272,27 @@ const fragmentShader4 = `
         // 最終的な色の合成
         vec3 finalColor = texColor.rgb;
         
-        // 放射状虹色レイヤー
-        finalColor = mix(finalColor, color1, stripe * 0.5 * (0.5 + tiltEffect));
+        // 放射状虹色レイヤー（透明度を上げて背景が見えるように）
+        finalColor = mix(finalColor, color1, stripe * 0.3 * (0.5 + tiltEffect * 0.5));
         
         // 同心円レイヤー
-        finalColor = mix(finalColor, color2, ring * 0.3);
+        finalColor = mix(finalColor, color2, ring * 0.2);
         
-        // 金属光沢
-        finalColor += metallicColor * metallic * 0.6;
+        // 金属光沢（弱める）
+        finalColor += metallicColor * metallic * 0.3;
         
-        // スターバースト
-        finalColor += vec3(burst) * 1.5;
+        // スターバースト（弱める）
+        finalColor += vec3(burst) * 0.6;
         
-        // キラキラ粒子
-        finalColor += vec3(sparkle) * 2.0;
+        // キラキラ粒子（弱める）
+        finalColor += vec3(sparkle) * 0.8;
         
         // 全体的な輝度調整（傾けるとより輝く）
-        float brightness = 1.0 + length(tilt) * 0.6;
+        float brightness = 1.0 + length(tilt) * 0.3;
         finalColor *= brightness;
         
-        // コントラスト強調（ビックリマンの鮮やかさ）
-        finalColor = pow(finalColor, vec3(0.9));
+        // コントラスト調整（より自然に）
+        finalColor = pow(finalColor, vec3(0.95));
         
         gl_FragColor = vec4(finalColor, texColor.a);
     }

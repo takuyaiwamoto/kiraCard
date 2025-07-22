@@ -30,6 +30,37 @@
             padding: 20px;
             border-radius: 10px;
             backdrop-filter: blur(10px);
+            transition: all 0.3s ease;
+        }
+        
+        #controls.minimized {
+            padding: 10px;
+            background: rgba(0, 0, 0, 0.5);
+        }
+        
+        #controls.minimized .control-content {
+            display: none;
+        }
+        
+        .minimize-button {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            color: white;
+            width: 25px;
+            height: 25px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 16px;
+            line-height: 25px;
+            text-align: center;
+            transition: background 0.3s;
+        }
+        
+        .minimize-button:hover {
+            background: rgba(255, 255, 255, 0.3);
         }
         
         .effect-button {
@@ -80,14 +111,17 @@
 </head>
 <body>
     <div id="controls">
-        <button class="effect-button" id="effectButton">
-            エフェクトを変更
-        </button>
-        <div class="effect-name" id="effectName">レインボーホログラム</div>
-        
-        <div class="info">
-            スマートフォンを傾けて<br>
-            3D立方体を体験！
+        <button class="minimize-button" onclick="toggleMinimize()">−</button>
+        <div class="control-content">
+            <button class="effect-button" id="effectButton">
+                エフェクトを変更
+            </button>
+            <div class="effect-name" id="effectName">レインボーホログラム</div>
+            
+            <div class="info">
+                スマートフォンを傾けて<br>
+                3D立方体を体験！
+            </div>
         </div>
     </div>
     
@@ -96,5 +130,19 @@
     
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="cube-app.js"></script>
+    <script>
+        function toggleMinimize() {
+            const controls = document.getElementById('controls');
+            const button = document.querySelector('.minimize-button');
+            
+            if (controls.classList.contains('minimized')) {
+                controls.classList.remove('minimized');
+                button.textContent = '−';
+            } else {
+                controls.classList.add('minimized');
+                button.textContent = '+';
+            }
+        }
+    </script>
 </body>
 </html>

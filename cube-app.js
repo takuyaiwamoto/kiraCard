@@ -206,13 +206,13 @@ const fragmentShader4 = `
         float sparkle = smoothstep(0.98, 1.0, sin(sparklePos.x * facePattern + time * 5.0) * sin(sparklePos.y - time * 3.0));
         
         vec3 finalColor = vec3(0.1, 0.05, 0.15);
-        finalColor += hologramColor * 0.6;
-        finalColor += metallicColor * metallic * 0.5;
-        finalColor += vec3(burst) * 2.0;
-        finalColor += vec3(sparkle) * 3.0;
+        finalColor += hologramColor * 0.4;
+        finalColor += metallicColor * metallic * 0.3;
+        finalColor += vec3(burst) * 0.8;
+        finalColor += vec3(sparkle) * 1.2;
         
         // 傾きによる輝度変化
-        finalColor *= 1.0 + length(tilt) * 0.5;
+        finalColor *= 1.0 + length(tilt) * 0.3;
         
         gl_FragColor = vec4(finalColor, 1.0);
     }
