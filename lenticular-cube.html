@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>キラカード風ホログラム演出</title>
+    <title>レンチキュラーキューブ - 7段階3D立方体</title>
     <style>
         body {
             margin: 0;
@@ -63,12 +63,8 @@
             background: rgba(255, 255, 255, 0.3);
         }
         
-        #fileInput {
-            display: none;
-        }
-        
-        .upload-button, .effect-button {
-            background: linear-gradient(45deg, #ff006e, #8338ec);
+        .effect-button {
+            background: linear-gradient(45deg, #3a86ff, #8338ec);
             color: white;
             border: none;
             padding: 12px 24px;
@@ -81,16 +77,11 @@
             width: 100%;
         }
         
-        .effect-button {
-            background: linear-gradient(45deg, #3a86ff, #8338ec);
-            margin-top: 20px;
-        }
-        
-        .upload-button:hover, .effect-button:hover {
+        .effect-button:hover {
             transform: scale(1.05);
         }
         
-        .upload-button:active, .effect-button:active {
+        .effect-button:active {
             transform: scale(0.95);
         }
         
@@ -102,43 +93,24 @@
             font-weight: bold;
         }
         
-        .mode-button {
-            background: linear-gradient(45deg, #ff6b35, #f7931e);
-            color: white;
-            border: none;
-            padding: 10px 20px;
+        .angle-display {
             font-size: 14px;
-            border-radius: 20px;
-            cursor: pointer;
-            transition: transform 0.3s;
-            margin: 5px 0;
-            display: block;
-            width: 100%;
+            text-align: center;
+            margin: 15px 0;
+            color: #00ff88;
+            font-weight: bold;
+            background: rgba(0, 255, 136, 0.1);
+            padding: 10px;
+            border-radius: 10px;
+            border: 1px solid rgba(0, 255, 136, 0.3);
         }
         
-        .mode-button:hover {
-            transform: scale(1.05);
-        }
-        
-        .mode-button:active {
-            transform: scale(0.95);
-        }
-        
-        .mode-name {
+        .rotation-display {
             font-size: 12px;
             text-align: center;
             margin-top: 5px;
-            color: #ff6b35;
+            color: #ffaa00;
             font-weight: bold;
-        }
-        
-        .angle-display {
-            font-size: 12px;
-            text-align: center;
-            margin-top: 10px;
-            color: #00ff88;
-            font-weight: bold;
-            display: none;
         }
         
         .info {
@@ -161,30 +133,20 @@
     <div id="controls">
         <button class="minimize-button" onclick="toggleMinimize()">−</button>
         <div class="control-content">
-            <button class="upload-button" onclick="document.getElementById('fileInput').click()">
-                画像をアップロード
-            </button>
-            <input type="file" id="fileInput" accept="image/*">
-            
-            <button class="mode-button" id="modeButton">
-                レンチキュラーモード
-            </button>
-            <div class="mode-name" id="modeName">通常モード</div>
-            
             <button class="effect-button" id="effectButton">
                 エフェクトを変更
             </button>
-            <div class="effect-name" id="effectName">レインボーホログラム</div>
+            <div class="effect-name" id="effectName">ビックリマンホログラム</div>
             
-            <div class="angle-display" id="angleDisplay">角度: 中央</div>
+            <div class="angle-display" id="angleDisplay">
+                角度: 中央<br>
+                <div class="rotation-display" id="rotationDisplay">回転: 0°</div>
+            </div>
             
             <div class="info">
                 スマートフォンを傾けて<br>
-                ホログラム効果を体験！<br>
-                <br>
-                <a href="lenticular-cube.html" style="color: #00ff88; text-decoration: none;">
-                    🎲 7段階レンチキュラーキューブ版
-                </a>
+                7段階レンチキュラーキューブを体験！<br>
+                <small>マウス移動でもテスト可能</small>
             </div>
         </div>
     </div>
@@ -193,7 +155,7 @@
     <canvas id="canvas"></canvas>
     
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-    <script src="app.js"></script>
+    <script src="lenticular-cube-app.js"></script>
     <script>
         function toggleMinimize() {
             const controls = document.getElementById('controls');
