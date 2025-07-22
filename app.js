@@ -377,14 +377,8 @@ const lenticularShader1 = `
         float metallicIntensity = 0.3 + abs(float(angleStep - 3)) * 0.1;
         vec3 metallicColor = mix(vec3(1.0, 0.9, 0.5), vec3(1.0, 1.0, 1.0), metallic);
         
-        // スターバースト効果
+        // スターバースト効果（削除）
         float burst = 0.0;
-        for(float i = 0.0; i < 6.0; i++) {
-            float burstAngle = i * 3.14159 / 3.0 + time * 0.5 + rotationOffset;
-            vec2 burstDir = vec2(cos(burstAngle), sin(burstAngle));
-            float burstDot = abs(dot(normalize(toCenter), burstDir));
-            burst += pow(burstDot, 20.0) * (1.0 - radius);
-        }
         
         // キラキラ粒子
         vec2 sparkleGrid = vUv * (30.0 + float(angleStep) * 2.0);
@@ -401,7 +395,6 @@ const lenticularShader1 = `
         finalColor = mix(finalColor, color1, stripe * 0.3 * (0.5 + abs(tiltEffect) * 0.5));
         finalColor = mix(finalColor, color2, ring * 0.2);
         finalColor += metallicColor * metallic * metallicIntensity;
-        finalColor += vec3(burst) * (0.6 + angleFactor * 0.4);
         finalColor += vec3(sparkle) * (0.8 + angleFactor * 0.8);
         
         float brightness = 1.0 + angleFactor * 0.3;
