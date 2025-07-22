@@ -661,20 +661,56 @@ function setupFileUpload() {
 
 function handleFileUpload(event) {
     const file = event.target.files[0];
-    if (!file || !file.type.startsWith('image/')) return;
+    if (!file || !file.type.startsWith('image/')) {
+        console.log('Invalid file type or no file selected');
+        return;
+    }
     
+    console.log('Loading image file:', file.name, file.type);
     const reader = new FileReader();
     const loading = document.getElementById('loading');
     
-    loading.style.display = 'block';
+    if (loading) {
+        loading.style.display = 'block';
+    }
     
     reader.onload = function(e) {
+        console.log('FileReader onload triggered');
         const loader = new THREE.TextureLoader();
-        loader.load(e.target.result, function(texture) {
-            imageTexture = texture;
-            hologramMaterial.uniforms.tDiffuse.value = texture;
+        loader.load(
+            e.target.result, 
+            function(texture) {
+                console.log('Texture loaded successfully', texture);
+                // テクスチャの設定を適切に行う
+                texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
+                texture.minFilter = texture.magFilter = THREE.LinearFilter;
+                
+                imageTexture = texture;
+                hologramMaterial.uniforms.tDiffuse.value = texture;
+                hologramMaterial.needsUpdate = true; // シェーダーの更新を強制
+                
+                if (loading) {
+                    loading.style.display = 'none';
+                }
+                console.log('Material texture updated and shader refreshed');
+            },
+            function(progress) {
+                console.log('Loading progress:', progress);
+            },
+            function(error) {
+                console.error('Error loading texture:', error);
+                if (loading) {
+                    loading.style.display = 'none';
+                }
+            }
+        );
+    };
+    
+    reader.onerror = function(error) {
+        console.error('FileReader error:', error);
+        if (loading) {
             loading.style.display = 'none';
-        });
+        }
     };
     
     reader.readAsDataURL(file);
