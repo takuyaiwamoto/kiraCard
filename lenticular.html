@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>レンチキュラーカード - 7段階ホログラム</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            font-family: Arial, sans-serif;
+            background-color: #000;
+            color: #fff;
+        }
+        
+        #canvas {
+            display: block;
+            width: 100vw;
+            height: 100vh;
+            touch-action: none;
+        }
+        
+        #controls {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            z-index: 10;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 20px;
+            border-radius: 10px;
+            backdrop-filter: blur(10px);
+            transition: all 0.3s ease;
+        }
+        
+        #controls.minimized {
+            padding: 10px;
+            background: rgba(0, 0, 0, 0.5);
+        }
+        
+        #controls.minimized .control-content {
+            display: none;
+        }
+        
+        .minimize-button {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            color: white;
+            width: 25px;
+            height: 25px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 16px;
+            line-height: 25px;
+            text-align: center;
+            transition: background 0.3s;
+        }
+        
+        .minimize-button:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+        
+        #fileInput {
+            display: none;
+        }
+        
+        .upload-button, .effect-button {
+            background: linear-gradient(45deg, #ff006e, #8338ec);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            font-size: 16px;
+            border-radius: 25px;
+            cursor: pointer;
+            transition: transform 0.3s;
+            margin-bottom: 10px;
+            display: block;
+            width: 100%;
+        }
+        
+        .effect-button {
+            background: linear-gradient(45deg, #3a86ff, #8338ec);
+            margin-top: 20px;
+        }
+        
+        .upload-button:hover, .effect-button:hover {
+            transform: scale(1.05);
+        }
+        
+        .upload-button:active, .effect-button:active {
+            transform: scale(0.95);
+        }
+        
+        .effect-name {
+            font-size: 14px;
+            text-align: center;
+            margin-top: 5px;
+            color: #8338ec;
+            font-weight: bold;
+        }
+        
+        .angle-display {
+            font-size: 12px;
+            text-align: center;
+            margin-top: 10px;
+            color: #00ff88;
+            font-weight: bold;
+        }
+        
+        .info {
+            font-size: 12px;
+            opacity: 0.8;
+            margin-top: 10px;
+        }
+        
+        #loading {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 24px;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div id="controls">
+        <button class="minimize-button" onclick="toggleMinimize()">−</button>
+        <div class="control-content">
+            <button class="upload-button" onclick="document.getElementById('fileInput').click()">
+                画像をアップロード
+            </button>
+            <input type="file" id="fileInput" accept="image/*">
+            
+            <button class="effect-button" id="effectButton">
+                エフェクトを変更
+            </button>
+            <div class="effect-name" id="effectName">ビックリマンホログラム</div>
+            
+            <div class="angle-display" id="angleDisplay">角度: 中央</div>
+            
+            <div class="info">
+                スマートフォンを傾けて<br>
+                7段階レンチキュラー効果を体験！
+            </div>
+        </div>
+    </div>
+    
+    <div id="loading">読み込み中...</div>
+    <canvas id="canvas"></canvas>
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="lenticular-app.js"></script>
+    <script>
+        function toggleMinimize() {
+            const controls = document.getElementById('controls');
+            const button = document.querySelector('.minimize-button');
+            
+            if (controls.classList.contains('minimized')) {
+                controls.classList.remove('minimized');
+                button.textContent = '−';
+            } else {
+                controls.classList.add('minimized');
+                button.textContent = '+';
+            }
+        }
+    </script>
+</body>
+</html>
