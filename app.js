@@ -1064,7 +1064,13 @@ function calibrateCenter() {
             currentAngleStep = 2; // 水平中央（front位置）
             currentVerticalStep = 2; // 垂直中央
             
-            console.log('Calibration completed:', { gammaOffset, betaOffset, position: 'front' });
+            // エフェクトも中央位置にリセット
+            currentTiltX = 0;
+            currentTiltY = 0;
+            targetTiltX = 0;
+            targetTiltY = 0;
+            
+            console.log('Calibration completed:', { gammaOffset, betaOffset, position: 'front', effectReset: true });
             
             // 画像をfrontに更新
             selectCurrentImage();
