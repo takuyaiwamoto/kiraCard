@@ -29,6 +29,7 @@ const fragmentShader1 = `
     uniform sampler2D tDiffuse;
     uniform float time;
     uniform vec2 tilt;
+    uniform int angleStep;
     uniform vec2 resolution;
     
     varying vec2 vUv;
@@ -42,7 +43,12 @@ const fragmentShader1 = `
     }
     
     void main() {
-        vec4 texColor = texture2D(tDiffuse, vUv);
+        // 7段階に対応したUVオフセット計算
+        float stepOffset = float(angleStep - 3) * 0.05;
+        vec2 shiftedUV = vUv + vec2(stepOffset, 0.0);
+        shiftedUV.x = fract(shiftedUV.x);
+        
+        vec4 texColor = texture2D(tDiffuse, shiftedUV);
         
         // 視線ベクトルの正規化
         vec3 viewDir = normalize(vViewPosition);
@@ -93,6 +99,7 @@ const fragmentShader2 = `
     uniform sampler2D tDiffuse;
     uniform float time;
     uniform vec2 tilt;
+    uniform int angleStep;
     uniform vec2 resolution;
     
     varying vec2 vUv;
@@ -106,16 +113,21 @@ const fragmentShader2 = `
     }
     
     void main() {
-        vec4 texColor = texture2D(tDiffuse, vUv);
+        // 7段階に対応したUVオフセット計算
+        float stepOffset = float(angleStep - 3) * 0.05;
+        vec2 shiftedUV = vUv + vec2(stepOffset, 0.0);
+        shiftedUV.x = fract(shiftedUV.x);
+        
+        vec4 texColor = texture2D(tDiffuse, shiftedUV);
         vec3 viewDir = normalize(vViewPosition);
         
         // プリズム効果の強度計算
-        float prismStrength = length(tilt) * 0.03;
+        float prismStrength = abs(float(angleStep - 3)) * 0.01 + length(tilt) * 0.02;
         
         // RGBチャンネルを分離してずらす
-        vec2 redOffset = vUv + vec2(prismStrength * tilt.x, prismStrength * tilt.y);
-        vec2 greenOffset = vUv;
-        vec2 blueOffset = vUv - vec2(prismStrength * tilt.x, prismStrength * tilt.y);
+        vec2 redOffset = shiftedUV + vec2(prismStrength * tilt.x, prismStrength * tilt.y);
+        vec2 greenOffset = shiftedUV;
+        vec2 blueOffset = shiftedUV - vec2(prismStrength * tilt.x, prismStrength * tilt.y);
         
         vec3 chromatic;
         chromatic.r = texture2D(tDiffuse, redOffset).r;
@@ -152,6 +164,7 @@ const fragmentShader3 = `
     uniform sampler2D tDiffuse;
     uniform float time;
     uniform vec2 tilt;
+    uniform int angleStep;
     uniform vec2 resolution;
     
     varying vec2 vUv;
@@ -169,11 +182,16 @@ const fragmentShader3 = `
     }
     
     void main() {
-        vec4 texColor = texture2D(tDiffuse, vUv);
+        // 7段階に対応したUVオフセット計算
+        float stepOffset = float(angleStep - 3) * 0.05;
+        vec2 shiftedUV = vUv + vec2(stepOffset, 0.0);
+        shiftedUV.x = fract(shiftedUV.x);
+        
+        vec4 texColor = texture2D(tDiffuse, shiftedUV);
         vec3 viewDir = normalize(vViewPosition);
         
         // オーロラのような波動パターン
-        vec2 waveCoord = vUv + tilt * 0.3;
+        vec2 waveCoord = shiftedUV + tilt * 0.3;
         float wave1 = sin(waveCoord.x * 15.0 + time * 2.0 + tilt.x * 5.0) * 0.5 + 0.5;
         float wave2 = sin(waveCoord.y * 12.0 - time * 1.5 + tilt.y * 5.0) * 0.5 + 0.5;
         float wave3 = sin(length(waveCoord - 0.5) * 20.0 - time * 3.0) * 0.5 + 0.5;
@@ -560,18 +578,20 @@ function handleOrientation(event) {
     const gamma = event.gamma || 0;
     const beta = event.beta || 0;
     
-    if (isLenticularMode) {
-        // レンチキュラーモード: 7段階判定
-        const combinedAngle = gamma + (beta > 90 || beta < -90 ? (beta > 0 ? beta - 180 : beta + 180) * 0.5 : beta * 0.5);
-        let step = Math.floor((combinedAngle + 60) / 120 * 7);
-        step = Math.max(0, Math.min(6, step));
-        
-        if(step !== currentAngleStep) {
-            currentAngleStep = step;
+    // 常に7段階判定を行う
+    const combinedAngle = gamma + (beta > 90 || beta < -90 ? (beta > 0 ? beta - 180 : beta + 180) * 0.5 : beta * 0.5);
+    let step = Math.floor((combinedAngle + 60) / 120 * 7);
+    step = Math.max(0, Math.min(6, step));
+    
+    if(step !== currentAngleStep) {
+        currentAngleStep = step;
+        if (isLenticularMode) {
             updateAngleDisplay();
         }
-    } else {
-        // 通常モード: スムーズな傾き
+    }
+    
+    if (!isLenticularMode) {
+        // 通常モードでもスムーズな傾きを保持
         targetTiltX = gamma / 90;
         targetTiltY = beta / 180;
         
@@ -585,19 +605,21 @@ function handleMouseMove(event) {
     const mouseX = (event.clientX / window.innerWidth - 0.5) * 2;
     const mouseY = (event.clientY / window.innerHeight - 0.5) * 2;
     
-    if (isLenticularMode) {
-        // レンチキュラーモード: 7段階判定
-        const combinedMouse = mouseX + mouseY * 0.5;
-        let step = Math.floor((combinedMouse + 1) / 2 * 7);
-        step = Math.max(0, Math.min(6, step));
-        
-        if(step !== currentAngleStep) {
-            currentAngleStep = step;
-            console.log('Mouse angle step changed to:', step, angleNames[step]);
+    // 常に7段階判定を行う
+    const combinedMouse = mouseX + mouseY * 0.5;
+    let step = Math.floor((combinedMouse + 1) / 2 * 7);
+    step = Math.max(0, Math.min(6, step));
+    
+    if(step !== currentAngleStep) {
+        currentAngleStep = step;
+        console.log('Mouse angle step changed to:', step, angleNames[step]);
+        if (isLenticularMode) {
             updateAngleDisplay();
         }
-    } else {
-        // 通常モード: スムーズな傾き
+    }
+    
+    if (!isLenticularMode) {
+        // 通常モードでもスムーズな傾きを保持
         targetTiltX = mouseX;
         targetTiltY = mouseY;
     }
@@ -655,11 +677,11 @@ function animate() {
     // uniform更新
     hologramMaterial.uniforms.time.value += 0.01;
     
-    if (isLenticularMode) {
-        // レンチキュラーモード: 角度ステップを送信
-        hologramMaterial.uniforms.angleStep.value = currentAngleStep;
-    } else {
-        // 通常モード: 傾きを送信
+    // 常に角度ステップを送信（通常モードでも画像移動で使用）
+    hologramMaterial.uniforms.angleStep.value = currentAngleStep;
+    
+    if (!isLenticularMode) {
+        // 通常モード: 傾きも送信（ホログラム効果用）
         hologramMaterial.uniforms.tilt.value.set(tiltX, tiltY);
     }
     
