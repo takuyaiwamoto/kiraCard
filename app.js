@@ -8,6 +8,7 @@ let mesh;
 let isLenticularMode = false;
 let currentAngleStep = 3; // 0-6の7段階、3が中央
 let currentVerticalStep = 3; // 0-6の7段階、3が中央
+let currentImageAspectRatio = 1.0; // 現在の画像のアスペクト比
 
 // 7段階の角度名
 const angleNames = ['左々', '左+', '左', '中央', '右', '右+', '右々'];
@@ -443,7 +444,8 @@ function init() {
     scene.add(mesh);
     
     // 初期アスペクト比の設定
-    updateMeshAspectRatio(1.0); // デフォルトテクスチャは正方形
+    currentImageAspectRatio = 1.0; // デフォルトテクスチャは正方形
+    updateMeshAspectRatio(currentImageAspectRatio);
     
     // イベントリスナーの設定
     window.addEventListener('resize', onWindowResize);
@@ -692,6 +694,7 @@ function handleFileUpload(event) {
                 
                 // アスペクト比を計算して適用
                 const aspectRatio = texture.image.width / texture.image.height;
+                currentImageAspectRatio = aspectRatio; // グローバル変数に保存
                 console.log('Image aspect ratio:', aspectRatio, 'dimensions:', texture.image.width, 'x', texture.image.height);
                 updateMeshAspectRatio(aspectRatio);
                 
@@ -728,14 +731,31 @@ function handleFileUpload(event) {
 
 function updateMeshAspectRatio(aspectRatio) {
     if (mesh) {
-        const maxSize = 4;
-        if (aspectRatio > 1) {
-            // 横長の画像
-            mesh.scale.set(maxSize, maxSize / aspectRatio, 1);
+        // ウィンドウサイズを考慮してサイズを計算
+        const windowAspect = window.innerWidth / window.innerHeight;
+        const padding = 0.85; // 15%の余白を確保
+        
+        // カメラの視野角75度、距離5での表示可能範囲を計算
+        const fov = 75 * Math.PI / 180; // ラジアンに変換
+        const distance = 5;
+        const vHeight = 2 * Math.tan(fov / 2) * distance; // 垂直方向の表示可能サイズ
+        const vWidth = vHeight * windowAspect; // 水平方向の表示可能サイズ
+        
+        let width, height;
+        
+        if (aspectRatio > windowAspect) {
+            // 画像が画面より横長の場合、幅を基準に
+            width = vWidth * padding;
+            height = width / aspectRatio;
         } else {
-            // 縦長の画像
-            mesh.scale.set(maxSize * aspectRatio, maxSize, 1);
+            // 画像が画面より縦長の場合、高さを基準に
+            height = vHeight * padding;
+            width = height * aspectRatio;
         }
+        
+        mesh.scale.set(width, height, 1);
+        console.log('Mesh scaled to:', width.toFixed(2), 'x', height.toFixed(2), 
+                   'Window aspect:', windowAspect.toFixed(2), 'Image aspect:', aspectRatio.toFixed(2));
     }
 }
 
@@ -744,6 +764,9 @@ function onWindowResize() {
     camera.updateProjectionMatrix();
     renderer.setSize(window.innerWidth, window.innerHeight);
     hologramMaterial.uniforms.resolution.value.set(window.innerWidth, window.innerHeight);
+    
+    // 画像サイズも新しいウィンドウサイズに合わせて再調整
+    updateMeshAspectRatio(currentImageAspectRatio);
 }
 
 function animate() {
