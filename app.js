@@ -699,15 +699,15 @@ function handleOrientation(event) {
     let hStep = Math.floor((calibratedGamma + 40) / 80 * 5);
     hStep = Math.max(0, Math.min(4, hStep));
     
-    // 上下5段階判定 (betaの前後傾きを使用) - 12→25の反応を半分にして切り替えやすく
-    let vStep = Math.floor((calibratedBeta + 12.5) / 25 * 5);
+    // 上下5段階判定 (betaの前後傾きを使用) - 最初の12を少し厳しく
+    let vStep = Math.floor((calibratedBeta + 15) / 30 * 5);
     vStep = Math.max(0, Math.min(4, vStep));
     
     // 左右に傾いている時は上下変化を無視（より敏感に検出）
-    const isHorizontalTilted = Math.abs(calibratedGamma) > 6; // 左右に6°以上傾いている
+    const isHorizontalTilted = Math.abs(calibratedGamma) > 4; // 左右に4°以上傾いている（より敏感に）
     if (isHorizontalTilted) {
         vStep = currentVerticalStep; // 上下は現在の値を維持
-        console.log('Horizontal tilt detected, ignoring vertical changes. Gamma:', gamma);
+        console.log('Horizontal tilt detected, ignoring vertical changes. Gamma:', calibratedGamma);
     }
     
     let updated = false;
@@ -1069,6 +1069,12 @@ function calibrateCenter() {
             currentTiltY = 0;
             targetTiltX = 0;
             targetTiltY = 0;
+            
+            // シェーダーのtilt uniformも即座にリセット
+            if (hologramMaterial) {
+                hologramMaterial.uniforms.tilt.value.set(0, 0);
+                hologramMaterial.needsUpdate = true;
+            }
             
             console.log('Calibration completed:', { gammaOffset, betaOffset, position: 'front', effectReset: true });
             
