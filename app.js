@@ -7,9 +7,11 @@ let currentEffectIndex = 0;
 let mesh;
 let isLenticularMode = false;
 let currentAngleStep = 3; // 0-6の7段階、3が中央
+let currentVerticalStep = 1; // 0-2の3段階、1が中央
 
 // 7段階の角度名
 const angleNames = ['左々', '左+', '左', '中央', '右', '右+', '右々'];
+const verticalNames = ['上', '中央', '下'];
 
 const vertexShader = `
     varying vec2 vUv;
@@ -43,10 +45,12 @@ const fragmentShader1 = `
     }
     
     void main() {
-        // 7段階に対応したUVオフセット計算
-        float stepOffset = float(angleStep - 3) * 0.05;
-        vec2 shiftedUV = vUv + vec2(stepOffset, 0.0);
+        // 21段階に対応したUVオフセット計算（7×3）
+        float hOffset = float(angleStep - 3) * 0.05; // 水平方向
+        float vOffset = float(verticalStep - 1) * 0.03; // 垂直方向
+        vec2 shiftedUV = vUv + vec2(hOffset, vOffset);
         shiftedUV.x = fract(shiftedUV.x);
+        shiftedUV.y = fract(shiftedUV.y);
         
         vec4 texColor = texture2D(tDiffuse, shiftedUV);
         
@@ -113,10 +117,12 @@ const fragmentShader2 = `
     }
     
     void main() {
-        // 7段階に対応したUVオフセット計算
-        float stepOffset = float(angleStep - 3) * 0.05;
-        vec2 shiftedUV = vUv + vec2(stepOffset, 0.0);
+        // 21段階に対応したUVオフセット計算（7×3）
+        float hOffset = float(angleStep - 3) * 0.05; // 水平方向
+        float vOffset = float(verticalStep - 1) * 0.03; // 垂直方向
+        vec2 shiftedUV = vUv + vec2(hOffset, vOffset);
         shiftedUV.x = fract(shiftedUV.x);
+        shiftedUV.y = fract(shiftedUV.y);
         
         vec4 texColor = texture2D(tDiffuse, shiftedUV);
         vec3 viewDir = normalize(vViewPosition);
@@ -182,10 +188,12 @@ const fragmentShader3 = `
     }
     
     void main() {
-        // 7段階に対応したUVオフセット計算
-        float stepOffset = float(angleStep - 3) * 0.05;
-        vec2 shiftedUV = vUv + vec2(stepOffset, 0.0);
+        // 21段階に対応したUVオフセット計算（7×3）
+        float hOffset = float(angleStep - 3) * 0.05; // 水平方向
+        float vOffset = float(verticalStep - 1) * 0.03; // 垂直方向
+        vec2 shiftedUV = vUv + vec2(hOffset, vOffset);
         shiftedUV.x = fract(shiftedUV.x);
+        shiftedUV.y = fract(shiftedUV.y);
         
         vec4 texColor = texture2D(tDiffuse, shiftedUV);
         vec3 viewDir = normalize(vViewPosition);
@@ -230,6 +238,8 @@ const fragmentShader4 = `
     uniform sampler2D tDiffuse;
     uniform float time;
     uniform vec2 tilt;
+    uniform int angleStep;
+    uniform int verticalStep;
     uniform vec2 resolution;
     
     varying vec2 vUv;
@@ -243,10 +253,12 @@ const fragmentShader4 = `
     }
     
     void main() {
-        // 7段階に対応したUVオフセット計算
-        float stepOffset = float(angleStep - 3) * 0.05;
-        vec2 shiftedUV = vUv + vec2(stepOffset, 0.0);
+        // 21段階に対応したUVオフセット計算（7×3）
+        float hOffset = float(angleStep - 3) * 0.05; // 水平方向
+        float vOffset = float(verticalStep - 1) * 0.03; // 垂直方向
+        vec2 shiftedUV = vUv + vec2(hOffset, vOffset);
         shiftedUV.x = fract(shiftedUV.x);
+        shiftedUV.y = fract(shiftedUV.y);
         
         vec4 texColor = texture2D(tDiffuse, shiftedUV);
         
@@ -265,44 +277,35 @@ const fragmentShader4 = `
         hueOffset += length(tilt) * 0.5; // 傾きによる色相変化
         
         // 円錐型のシェーディング（中心が明るく、周囲が暗い）
-        float conicalShading = 1.0 - smoothstep(0.0, 0.5, cellRadius);
-        conicalShading = pow(conicalShading, 2.0); // 強調
+        float conicalShading = 1.0 - smoothstep(0.1, 0.4, cellRadius);
+        conicalShading = max(conicalShading, 0.3); // 最小値を設定して真っ黒を防ぐ
         
         // 回転方向の統一（照明方向の錯覚）
         float rotationPhase = time * 0.5 + length(tilt) * 2.0;
         float lightDirection = cellAngle + rotationPhase;
-        float directionalLight = cos(lightDirection) * 0.5 + 0.5;
+        float directionalLight = cos(lightDirection) * 0.3 + 0.7; // 明るめに調整
         
         // 虹色グラデーション（左上から右下）
-        float rainbowHue = hueOffset + directionalLight * 0.3;
+        float rainbowHue = hueOffset + directionalLight * 0.2;
         rainbowHue = fract(rainbowHue);
         
-        // 彩度と明度の調整
-        float saturation = 0.8 + conicalShading * 0.2;
-        float brightness = 0.6 + conicalShading * 0.4 + directionalLight * 0.3;
+        // 彩度と明度の調整（明るめに設定）
+        float saturation = 0.7 + conicalShading * 0.2;
+        float brightness = 0.7 + conicalShading * 0.3; // ベース明度を上げる
         
         vec3 gridColor = hsv2rgb(vec3(rainbowHue, saturation, brightness));
         
         // 金属的光沢（ハイライト）
-        float metallic = pow(conicalShading, 4.0) * directionalLight;
-        vec3 highlight = vec3(1.0, 1.0, 1.0) * metallic * 0.5;
+        float metallic = pow(conicalShading, 3.0) * directionalLight;
+        vec3 highlight = vec3(1.0, 1.0, 1.0) * metallic * 0.3;
         
-        // グリッドラインの強調（オプション）
-        float gridLine = 1.0;
-        float lineWidth = 0.05;
-        if (gridUV.x < lineWidth || gridUV.x > 1.0 - lineWidth || 
-            gridUV.y < lineWidth || gridUV.y > 1.0 - lineWidth) {
-            gridLine = 0.8;
-        }
-        
-        // 最終的な色の合成
+        // 最終的な色の合成（グリッドラインを削除してシンプルに）
         vec3 finalColor = texColor.rgb;
-        finalColor = mix(finalColor, gridColor, 0.6); // グリッド効果をブレンド
+        finalColor = mix(finalColor, gridColor, 0.5); // グリッド効果をブレンド
         finalColor += highlight; // ハイライト追加
-        finalColor *= gridLine; // グリッドライン効果
         
         // 全体的な輝度調整
-        float overallBrightness = 1.0 + length(tilt) * 0.2;
+        float overallBrightness = 1.0 + length(tilt) * 0.3;
         finalColor *= overallBrightness;
         
         gl_FragColor = vec4(finalColor, texColor.a);
@@ -327,10 +330,12 @@ const lenticularShader1 = `
     }
     
     void main() {
-        // 7段階に対応したUVオフセット計算
-        float stepOffset = float(angleStep - 3) * 0.05;
-        vec2 shiftedUV = vUv + vec2(stepOffset, 0.0);
+        // 21段階に対応したUVオフセット計算（7×3）
+        float hOffset = float(angleStep - 3) * 0.05; // 水平方向
+        float vOffset = float(verticalStep - 1) * 0.03; // 垂直方向
+        vec2 shiftedUV = vUv + vec2(hOffset, vOffset);
         shiftedUV.x = fract(shiftedUV.x);
+        shiftedUV.y = fract(shiftedUV.y);
         
         vec4 texColor = texture2D(tDiffuse, shiftedUV);
         
@@ -349,42 +354,33 @@ const lenticularShader1 = `
         hueOffset += float(angleStep) * 0.15; // 角度ステップによる色相シフト
         
         // 円錐型のシェーディング（中心が明るく、周囲が暗い）
-        float conicalShading = 1.0 - smoothstep(0.0, 0.45, cellRadius);
-        conicalShading = pow(conicalShading, 1.5 + float(angleStep) * 0.1);
+        float conicalShading = 1.0 - smoothstep(0.1, 0.4, cellRadius);
+        conicalShading = max(conicalShading, 0.4); // 最小値を設定
         
         // 回転方向の統一（照明方向の錯覚、角度ステップで変化）
         float rotationPhase = time * 0.3 + float(angleStep) * 0.8;
         float lightDirection = cellAngle + rotationPhase;
-        float directionalLight = cos(lightDirection) * 0.5 + 0.5;
+        float directionalLight = cos(lightDirection) * 0.3 + 0.7; // 明るめに調整
         
         // 虹色グラデーション（左上から右下、角度で強調）
-        float rainbowHue = hueOffset + directionalLight * 0.4;
+        float rainbowHue = hueOffset + directionalLight * 0.3;
         rainbowHue = fract(rainbowHue);
         
-        // 彩度と明度の調整（角度で変化）
-        float saturation = 0.7 + conicalShading * 0.3 + float(angleStep) * 0.02;
-        float brightness = 0.5 + conicalShading * 0.5 + directionalLight * 0.4;
+        // 彩度と明度の調整（角度で変化、明るめに設定）
+        float saturation = 0.6 + conicalShading * 0.3;
+        float brightness = 0.7 + conicalShading * 0.3; // ベース明度を上げる
         
         vec3 gridColor = hsv2rgb(vec3(rainbowHue, saturation, brightness));
         
         // 金属的光沢（ハイライト、角度で強度変化）
-        float metallic = pow(conicalShading, 3.0) * directionalLight;
-        float metallicIntensity = 0.4 + abs(float(angleStep - 3)) * 0.1;
+        float metallic = pow(conicalShading, 2.0) * directionalLight;
+        float metallicIntensity = 0.3 + abs(float(angleStep - 3)) * 0.1;
         vec3 highlight = vec3(1.0, 1.0, 1.0) * metallic * metallicIntensity;
         
-        // グリッドラインの強調（角度で変化）
-        float gridLine = 1.0;
-        float lineWidth = 0.03 + float(angleStep) * 0.005;
-        if (gridUV.x < lineWidth || gridUV.x > 1.0 - lineWidth || 
-            gridUV.y < lineWidth || gridUV.y > 1.0 - lineWidth) {
-            gridLine = 0.7 + float(angleStep) * 0.05;
-        }
-        
-        // 最終的な色の合成
+        // 最終的な色の合成（シンプルに）
         vec3 finalColor = texColor.rgb;
-        finalColor = mix(finalColor, gridColor, 0.7); // グリッド効果をブレンド
+        finalColor = mix(finalColor, gridColor, 0.6); // グリッド効果をブレンド
         finalColor += highlight; // ハイライト追加
-        finalColor *= gridLine; // グリッドライン効果
         
         // 角度による全体的な輝度調整
         float angleFactor = abs(float(angleStep - 3)) / 3.0;
@@ -430,6 +426,7 @@ function init() {
             time: { value: 0 },
             tilt: { value: new THREE.Vector2(0, 0) },
             angleStep: { value: currentAngleStep },
+            verticalStep: { value: currentVerticalStep },
             resolution: { value: new THREE.Vector2(window.innerWidth, window.innerHeight) }
         },
         vertexShader: vertexShader,
@@ -504,29 +501,40 @@ function createDefaultTexture() {
     canvas.height = 512;
     const ctx = canvas.getContext('2d');
     
-    // 7段階表示用のグラデーション背景
-    for(let i = 0; i < 7; i++) {
-        const x = i * 73; // 512/7 ≈ 73
-        const hue = i * 60; // 0, 60, 120, 180, 240, 300, 360
-        ctx.fillStyle = `hsl(${hue}, 80%, 60%)`;
-        ctx.fillRect(x, 0, 73, 512);
-        
-        // 各セクションにテキスト
-        ctx.fillStyle = 'white';
-        ctx.font = 'bold 24px Arial';
-        ctx.textAlign = 'center';
-        ctx.fillText(angleNames[i], x + 36, 256);
+    // 21段階表示用のグリッド背景（7×3）
+    const cellWidth = 512 / 7; // ≈ 73
+    const cellHeight = 512 / 3; // ≈ 170
+    
+    for(let v = 0; v < 3; v++) {
+        for(let h = 0; h < 7; h++) {
+            const x = h * cellWidth;
+            const y = v * cellHeight;
+            const hue = (h * 60 + v * 20) % 360;
+            const lightness = 60 + v * 10; // 上から下へ明度変化
+            
+            ctx.fillStyle = `hsl(${hue}, 80%, ${lightness}%)`;
+            ctx.fillRect(x, y, cellWidth, cellHeight);
+            
+            // 各セクションにテキスト
+            ctx.fillStyle = 'white';
+            ctx.font = 'bold 16px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText(`${angleNames[h]}`, x + cellWidth/2, y + cellHeight/2 - 10);
+            ctx.font = '12px Arial';
+            ctx.fillText(`${verticalNames[v]}`, x + cellWidth/2, y + cellHeight/2 + 10);
+        }
     }
     
     // 中央にタイトル
-    ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
-    ctx.fillRect(0, 200, 512, 112);
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.8)';
+    ctx.fillRect(128, 200, 256, 112);
     ctx.fillStyle = 'white';
-    ctx.font = 'bold 32px Arial';
+    ctx.font = 'bold 28px Arial';
     ctx.textAlign = 'center';
-    ctx.fillText('HOLOGRAM', 256, 240);
-    ctx.font = '18px Arial';
-    ctx.fillText('レンチキュラーモードで7段階変化', 256, 280);
+    ctx.fillText('HOLOGRAM', 256, 230);
+    ctx.font = '14px Arial';
+    ctx.fillText('21段階変化（7×3）', 256, 250);
+    ctx.fillText('水平+垂直対応', 256, 270);
     
     imageTexture = new THREE.CanvasTexture(canvas);
 }
@@ -561,13 +569,30 @@ function handleOrientation(event) {
     const gamma = event.gamma || 0;
     const beta = event.beta || 0;
     
-    // 常に7段階判定を行う
-    const combinedAngle = gamma + (beta > 90 || beta < -90 ? (beta > 0 ? beta - 180 : beta + 180) * 0.5 : beta * 0.5);
-    let step = Math.floor((combinedAngle + 60) / 120 * 7);
-    step = Math.max(0, Math.min(6, step));
+    console.log('Device orientation:', { gamma, beta });
     
-    if(step !== currentAngleStep) {
-        currentAngleStep = step;
+    // 左右7段階判定（gammaメイン）
+    let hStep = Math.floor((gamma + 60) / 120 * 7);
+    hStep = Math.max(0, Math.min(6, hStep));
+    
+    // 上下3段階判定 (betaの前後傾きを使用、より敏感に)
+    let vStep = 1; // デフォルト中央
+    if (beta < -15) vStep = 0; // 上 (手前に傾ける)
+    else if (beta > 15) vStep = 2; // 下 (向こうに傾ける)
+    
+    let updated = false;
+    if(hStep !== currentAngleStep) {
+        currentAngleStep = hStep;
+        updated = true;
+    }
+    
+    if(vStep !== currentVerticalStep) {
+        currentVerticalStep = vStep;
+        updated = true;
+    }
+    
+    if(updated) {
+        console.log('Steps updated:', { hStep, vStep, angles: angleNames[hStep], vertical: verticalNames[vStep] });
         if (isLenticularMode) {
             updateAngleDisplay();
         }
@@ -588,14 +613,28 @@ function handleMouseMove(event) {
     const mouseX = (event.clientX / window.innerWidth - 0.5) * 2;
     const mouseY = (event.clientY / window.innerHeight - 0.5) * 2;
     
-    // 常に7段階判定を行う
-    const combinedMouse = mouseX + mouseY * 0.5;
-    let step = Math.floor((combinedMouse + 1) / 2 * 7);
-    step = Math.max(0, Math.min(6, step));
+    // 左右7段階判定（X軸）
+    let hStep = Math.floor((mouseX + 1) / 2 * 7);
+    hStep = Math.max(0, Math.min(6, hStep));
     
-    if(step !== currentAngleStep) {
-        currentAngleStep = step;
-        console.log('Mouse angle step changed to:', step, angleNames[step]);
+    // 上下3段階判定（Y軸、より敏感に）
+    let vStep = 1; // デフォルト中央
+    if (mouseY < -0.2) vStep = 0; // 上
+    else if (mouseY > 0.2) vStep = 2; // 下
+    
+    let updated = false;
+    if(hStep !== currentAngleStep) {
+        currentAngleStep = hStep;
+        updated = true;
+    }
+    
+    if(vStep !== currentVerticalStep) {
+        currentVerticalStep = vStep;
+        updated = true;
+    }
+    
+    if(updated) {
+        console.log('Mouse step changed to:', hStep, angleNames[hStep], '/', vStep, verticalNames[vStep]);
         if (isLenticularMode) {
             updateAngleDisplay();
         }
@@ -611,7 +650,7 @@ function handleMouseMove(event) {
 function updateAngleDisplay() {
     const angleDisplay = document.getElementById('angleDisplay');
     if (angleDisplay) {
-        angleDisplay.textContent = `角度: ${angleNames[currentAngleStep]}`;
+        angleDisplay.textContent = `角度: ${angleNames[currentAngleStep]} / ${verticalNames[currentVerticalStep]}`;
     }
 }
 
@@ -662,6 +701,7 @@ function animate() {
     
     // 常に角度ステップを送信（通常モードでも画像移動で使用）
     hologramMaterial.uniforms.angleStep.value = currentAngleStep;
+    hologramMaterial.uniforms.verticalStep.value = currentVerticalStep;
     
     if (!isLenticularMode) {
         // 通常モード: 傾きも送信（ホログラム効果用）
