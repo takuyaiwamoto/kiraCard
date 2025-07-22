@@ -687,12 +687,12 @@ function handleOrientation(event) {
     
     console.log('Device orientation:', { gamma, beta });
     
-    // 左右5段階判定（gammaメイン）- より緩やかに設定
-    let hStep = Math.floor((gamma + 50) / 100 * 5);
+    // 左右5段階判定（gammaメイン）- さらに緩やかに設定
+    let hStep = Math.floor((gamma + 75) / 150 * 5);
     hStep = Math.max(0, Math.min(4, hStep));
     
-    // 上下5段階判定 (betaの前後傾きを使用) - より緩やかに設定
-    let vStep = Math.floor((beta + 50) / 100 * 5);
+    // 上下5段階判定 (betaの前後傾きを使用) - さらに緩やかに設定
+    let vStep = Math.floor((beta + 75) / 150 * 5);
     vStep = Math.max(0, Math.min(4, vStep));
     
     let updated = false;
