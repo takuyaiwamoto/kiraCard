@@ -643,8 +643,8 @@ function handleOrientation(event) {
     
     console.log('Device orientation:', { gamma, beta });
     
-    // 左右5段階判定（gammaメイン）
-    let hStep = Math.floor((gamma + 60) / 120 * 5);
+    // 左右5段階判定（gammaメイン）- より敏感に設定
+    let hStep = Math.floor((gamma + 30) / 60 * 5);
     hStep = Math.max(0, Math.min(4, hStep));
     
     // 上下10段階判定 (betaの前後傾きを使用)
@@ -652,8 +652,12 @@ function handleOrientation(event) {
     vStep = Math.max(0, Math.min(9, vStep));
     
     let updated = false;
+    let angleChanged = false;
+    
     if(hStep !== currentAngleStep) {
+        console.log('Angle step changed from', currentAngleStep, 'to', hStep);
         currentAngleStep = hStep;
+        angleChanged = true;
         updated = true;
     }
     
@@ -666,7 +670,7 @@ function handleOrientation(event) {
         console.log('Steps updated:', { hStep, vStep, angles: angleNames[hStep], vertical: verticalNames[vStep] });
         
         // 角度が変わった場合は画像を切り替える
-        if(hStep !== currentAngleStep) {
+        if(angleChanged) {
             selectCurrentImage();
         }
         
@@ -699,8 +703,12 @@ function handleMouseMove(event) {
     vStep = Math.max(0, Math.min(9, vStep));
     
     let updated = false;
+    let angleChanged = false;
+    
     if(hStep !== currentAngleStep) {
+        console.log('Mouse angle step changed from', currentAngleStep, 'to', hStep);
         currentAngleStep = hStep;
+        angleChanged = true;
         updated = true;
     }
     
@@ -713,7 +721,7 @@ function handleMouseMove(event) {
         console.log('Mouse step changed to:', hStep, angleNames[hStep], '/', vStep, verticalNames[vStep]);
         
         // 角度が変わった場合は画像を切り替える
-        if(hStep !== currentAngleStep) {
+        if(angleChanged) {
             selectCurrentImage();
         }
         
