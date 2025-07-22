@@ -691,12 +691,12 @@ function handleOrientation(event) {
     let hStep = Math.floor((gamma + 40) / 80 * 5);
     hStep = Math.max(0, Math.min(4, hStep));
     
-    // 上下5段階判定 (betaの前後傾きを使用) - 非常にシビアに設定
-    let vStep = Math.floor((beta + 90) / 180 * 5);
+    // 上下5段階判定 (betaの前後傾きを使用) - 極めてシビアに設定
+    let vStep = Math.floor((beta + 120) / 240 * 5);
     vStep = Math.max(0, Math.min(4, vStep));
     
-    // 左右に傾いている時は上下変化を無視
-    const isHorizontalTilted = Math.abs(gamma) > 12; // 左右に12°以上傾いている
+    // 左右に傾いている時は上下変化を無視（より敏感に検出）
+    const isHorizontalTilted = Math.abs(gamma) > 6; // 左右に6°以上傾いている
     if (isHorizontalTilted) {
         vStep = currentVerticalStep; // 上下は現在の値を維持
         console.log('Horizontal tilt detected, ignoring vertical changes. Gamma:', gamma);
@@ -752,12 +752,12 @@ function handleMouseMove(event) {
     hStep = Math.max(0, Math.min(4, hStep));
     
     // 上下5段階判定（Y軸）- Y軸は逆転（上が負、下が正）
-    // 非常にシビアに設定（より大きな動きが必要）
-    let vStep = Math.floor((-mouseY * 0.4 + 1) / 2 * 5);
+    // 極めてシビアに設定（非常に大きな動きが必要）
+    let vStep = Math.floor((-mouseY * 0.2 + 1) / 2 * 5);
     vStep = Math.max(0, Math.min(4, vStep));
     
-    // 左右に大きく動いている時は上下変化を無視
-    const isHorizontalMovement = Math.abs(mouseX) > 0.3; // 左右に30%以上移動
+    // 左右に少し動いている時も上下変化を無視
+    const isHorizontalMovement = Math.abs(mouseX) > 0.15; // 左右に15%以上移動
     if (isHorizontalMovement) {
         vStep = currentVerticalStep; // 上下は現在の値を維持
         console.log('Horizontal mouse movement detected, ignoring vertical changes. MouseX:', mouseX);
