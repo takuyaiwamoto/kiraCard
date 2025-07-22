@@ -8,12 +8,22 @@ let currentEffectIndex = 0;
 let mesh;
 let isLenticularMode = false;
 let currentAngleStep = 2; // 0-4の5段階、2が中央
-let currentVerticalStep = 4; // 0-9の10段階、4が中央（垂直は10段階維持）
+let currentVerticalStep = 2; // 0-4の5段階、2が中央
 let currentImageAspectRatio = 1.0; // 現在の画像のアスペクト比
-// 5段階の角度名と対応するファイル名
+
+// 3×3=9段階の画像ファイル配列
+const imageMatrix = [
+    // [上大, 上小, 中央, 下小, 下大]
+    [null, null, '-25.png', null, null], // 左大
+    [null, 'u12.png', '-12.png', 'b12.png', null], // 左小
+    ['u25.png', 'u12.png', 'front.png', 'b12.png', 'b25.png'], // 中央
+    [null, 'u12.png', '12.png', 'b12.png', null], // 右小
+    [null, null, '25.png', null, null]  // 右大
+];
+
+// 表示用の名前
 const angleNames = ['左大', '左小', '中央', '右小', '右大'];
-const angleImageFiles = ['-25.png', '-12.png', 'front.png', '12.png', '25.png'];
-const verticalNames = ['上極', '上々', '上+', '上-', '上', '中央', '下', '下-', '下+', '下々'];
+const verticalNames = ['上大', '上小', '中央', '下小', '下大'];
 
 const vertexShader = `
     varying vec2 vUv;
@@ -514,16 +524,28 @@ function createDefaultTexture() {
 }
 
 function loadAllImages() {
-    console.log('Loading all angle images...');
+    console.log('Loading all angle images (3x5 matrix)...');
     createDefaultTexture(); // まずデフォルトテクスチャを作成
     currentImageTexture = imageTexture;
     
-    // 5つの角度画像を自動で読み込み試行
+    // 画像ファイルリストを作成
+    const allImageFiles = new Set();
+    for (let h = 0; h < imageMatrix.length; h++) {
+        for (let v = 0; v < imageMatrix[h].length; v++) {
+            const fileName = imageMatrix[h][v];
+            if (fileName) {
+                allImageFiles.add(fileName);
+            }
+        }
+    }
+    
+    console.log('Unique image files to load:', Array.from(allImageFiles));
+    
+    // 全画像を自動で読み込み試行
     const loader = new THREE.TextureLoader();
     loader.setCrossOrigin('anonymous'); // CORS対応
     
-    for (let i = 0; i < 5; i++) {
-        const fileName = angleImageFiles[i];
+    allImageFiles.forEach(fileName => {
         console.log('Attempting to load:', fileName);
         
         loader.load(
@@ -542,7 +564,8 @@ function loadAllImages() {
                 updateMeshAspectRatio(aspectRatio);
                 
                 // 現在の角度の画像だった場合はすぐに表示
-                if (fileName === angleImageFiles[currentAngleStep]) {
+                const currentFileName = getCurrentImageFileName();
+                if (fileName === currentFileName) {
                     selectCurrentImage();
                 }
             },
@@ -570,7 +593,8 @@ function loadAllImages() {
                             texture.minFilter = texture.magFilter = THREE.LinearFilter;
                             imageTextures[fileName] = texture;
                             
-                            if (fileName === angleImageFiles[currentAngleStep]) {
+                            const currentFileName = getCurrentImageFileName();
+                            if (fileName === currentFileName) {
                                 selectCurrentImage();
                             }
                         }
@@ -582,15 +606,26 @@ function loadAllImages() {
                 img.src = fileName;
             }
         );
-    }
+    });
     
     // 最初はfront.pngを表示予定だが、なければデフォルトテクスチャ
     selectCurrentImage();
 }
 
+function getCurrentImageFileName() {
+    const fileName = imageMatrix[currentAngleStep][currentVerticalStep];
+    return fileName || 'front.png'; // フォールバック
+}
+
 function selectCurrentImage() {
-    const targetFile = angleImageFiles[currentAngleStep];
-    console.log('Selecting image for angle step:', currentAngleStep, 'file:', targetFile);
+    const targetFile = getCurrentImageFileName();
+    console.log('Selecting image for position:', { 
+        angle: currentAngleStep, 
+        vertical: currentVerticalStep,
+        angleName: angleNames[currentAngleStep],
+        verticalName: verticalNames[currentVerticalStep],
+        file: targetFile 
+    });
     
     if (imageTextures[targetFile]) {
         currentImageTexture = imageTextures[targetFile];
@@ -647,30 +682,32 @@ function handleOrientation(event) {
     let hStep = Math.floor((gamma + 30) / 60 * 5);
     hStep = Math.max(0, Math.min(4, hStep));
     
-    // 上下10段階判定 (betaの前後傾きを使用)
-    let vStep = Math.floor((beta + 60) / 120 * 10);
-    vStep = Math.max(0, Math.min(9, vStep));
+    // 上下5段階判定 (betaの前後傾きを使用) - より敏感に設定
+    let vStep = Math.floor((beta + 30) / 60 * 5);
+    vStep = Math.max(0, Math.min(4, vStep));
     
     let updated = false;
-    let angleChanged = false;
+    let positionChanged = false;
     
     if(hStep !== currentAngleStep) {
-        console.log('Angle step changed from', currentAngleStep, 'to', hStep);
+        console.log('Horizontal angle changed from', currentAngleStep, 'to', hStep);
         currentAngleStep = hStep;
-        angleChanged = true;
+        positionChanged = true;
         updated = true;
     }
     
     if(vStep !== currentVerticalStep) {
+        console.log('Vertical angle changed from', currentVerticalStep, 'to', vStep);
         currentVerticalStep = vStep;
+        positionChanged = true;
         updated = true;
     }
     
     if(updated) {
         console.log('Steps updated:', { hStep, vStep, angles: angleNames[hStep], vertical: verticalNames[vStep] });
         
-        // 角度が変わった場合は画像を切り替える
-        if(angleChanged) {
+        // 位置が変わった場合は画像を切り替える
+        if(positionChanged) {
             selectCurrentImage();
         }
         
@@ -698,30 +735,32 @@ function handleMouseMove(event) {
     let hStep = Math.floor((mouseX + 1) / 2 * 5);
     hStep = Math.max(0, Math.min(4, hStep));
     
-    // 上下10段階判定（Y軸）
-    let vStep = Math.floor((mouseY + 1) / 2 * 10);
-    vStep = Math.max(0, Math.min(9, vStep));
+    // 上下5段階判定（Y軸）- Y軸は逆転（上が負、下が正）
+    let vStep = Math.floor((-mouseY + 1) / 2 * 5);
+    vStep = Math.max(0, Math.min(4, vStep));
     
     let updated = false;
-    let angleChanged = false;
+    let positionChanged = false;
     
     if(hStep !== currentAngleStep) {
-        console.log('Mouse angle step changed from', currentAngleStep, 'to', hStep);
+        console.log('Mouse horizontal changed from', currentAngleStep, 'to', hStep);
         currentAngleStep = hStep;
-        angleChanged = true;
+        positionChanged = true;
         updated = true;
     }
     
     if(vStep !== currentVerticalStep) {
+        console.log('Mouse vertical changed from', currentVerticalStep, 'to', vStep);
         currentVerticalStep = vStep;
+        positionChanged = true;
         updated = true;
     }
     
     if(updated) {
         console.log('Mouse step changed to:', hStep, angleNames[hStep], '/', vStep, verticalNames[vStep]);
         
-        // 角度が変わった場合は画像を切り替える
-        if(angleChanged) {
+        // 位置が変わった場合は画像を切り替える
+        if(positionChanged) {
             selectCurrentImage();
         }
         
@@ -741,7 +780,8 @@ function handleMouseMove(event) {
 function updateAngleDisplay() {
     const angleDisplay = document.getElementById('angleDisplay');
     if (angleDisplay) {
-        angleDisplay.textContent = `角度: ${angleNames[currentAngleStep]} / ${verticalNames[currentVerticalStep]}`;
+        const currentFile = getCurrentImageFileName();
+        angleDisplay.textContent = `位置: ${angleNames[currentAngleStep]} / ${verticalNames[currentVerticalStep]} (${currentFile})`;
     }
 }
 
@@ -784,21 +824,30 @@ function setupDragAndDrop() {
 function processDroppedImage(file) {
     console.log('Processing dropped image:', file.name);
     
-    // ファイル名から角度を判定
-    let targetAngleFile = null;
-    for (const angleFile of angleImageFiles) {
-        if (file.name.includes(angleFile.replace('.png', ''))) {
-            targetAngleFile = angleFile;
+    // ファイル名から対応する画像ファイル名を判定
+    let targetFileName = null;
+    const fileName = file.name.toLowerCase();
+    
+    // 可能なファイル名のリスト
+    const possibleNames = [
+        'front.png', '-25.png', '-12.png', '12.png', '25.png',
+        'u12.png', 'u25.png', 'b12.png', 'b25.png'
+    ];
+    
+    for (const possibleName of possibleNames) {
+        const baseName = possibleName.replace('.png', '');
+        if (fileName.includes(baseName)) {
+            targetFileName = possibleName;
             break;
         }
     }
     
-    if (!targetAngleFile) {
-        // ファイル名に角度が含まれていない場合は現在の角度位置に設定
-        targetAngleFile = angleImageFiles[currentAngleStep];
-        console.log('No angle detected in filename, using current angle:', targetAngleFile);
+    if (!targetFileName) {
+        // ファイル名に対応する名前が含まれていない場合は現在の位置に設定
+        targetFileName = getCurrentImageFileName();
+        console.log('No specific name detected in filename, using current position:', targetFileName);
     } else {
-        console.log('Detected angle from filename:', targetAngleFile);
+        console.log('Detected filename from dropped file:', targetFileName);
     }
     
     const reader = new FileReader();
@@ -807,25 +856,25 @@ function processDroppedImage(file) {
         loader.load(
             e.target.result,
             function(texture) {
-                console.log('Loaded angle image:', targetAngleFile);
+                console.log('Loaded image:', targetFileName);
                 // テクスチャの設定
                 texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
                 texture.minFilter = texture.magFilter = THREE.LinearFilter;
                 
                 // 画像を保存
-                imageTextures[targetAngleFile] = texture;
+                imageTextures[targetFileName] = texture;
                 
-                // アスペクト比を更新（最初の画像の場合）
+                // アスペクト比を更新
                 const aspectRatio = texture.image.width / texture.image.height;
                 currentImageAspectRatio = aspectRatio;
                 updateMeshAspectRatio(aspectRatio);
                 
-                // 現在の角度の画像だった場合はすぐに表示
-                if (targetAngleFile === angleImageFiles[currentAngleStep]) {
+                // 現在の位置の画像だった場合はすぐに表示
+                if (targetFileName === getCurrentImageFileName()) {
                     selectCurrentImage();
                 }
                 
-                console.log('Image stored for angle:', targetAngleFile, 'Aspect ratio:', aspectRatio);
+                console.log('Image stored:', targetFileName, 'Aspect ratio:', aspectRatio);
             },
             undefined,
             function(error) {
