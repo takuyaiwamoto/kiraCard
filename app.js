@@ -420,8 +420,8 @@ function init() {
     renderer.setSize(window.innerWidth, window.innerHeight);
     renderer.setPixelRatio(window.devicePixelRatio);
     
-    // デフォルトテクスチャの作成
-    createDefaultTexture();
+    // 初期画像の読み込み
+    loadInitialImage();
     
     // マテリアルの作成
     hologramMaterial = new THREE.ShaderMaterial({
@@ -443,9 +443,10 @@ function init() {
     mesh = new THREE.Mesh(geometry, hologramMaterial);
     scene.add(mesh);
     
-    // 初期アスペクト比の設定
-    currentImageAspectRatio = 1.0; // デフォルトテクスチャは正方形
-    updateMeshAspectRatio(currentImageAspectRatio);
+    // 初期アスペクト比の設定（loadInitialImageで設定されるので、ここではデフォルト値のみ）
+    if (currentImageAspectRatio && imageTexture) {
+        updateMeshAspectRatio(currentImageAspectRatio);
+    }
     
     // イベントリスナーの設定
     window.addEventListener('resize', onWindowResize);
@@ -546,6 +547,47 @@ function createDefaultTexture() {
     ctx.fillText('Complete Grid Control', 256, 300);
     
     imageTexture = new THREE.CanvasTexture(canvas);
+}
+
+function loadInitialImage() {
+    const loader = new THREE.TextureLoader();
+    loader.load(
+        'myutu.jpg',
+        function(texture) {
+            console.log('Initial image loaded successfully');
+            // テクスチャの設定
+            texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
+            texture.minFilter = texture.magFilter = THREE.LinearFilter;
+            
+            // アスペクト比を計算して適用
+            const aspectRatio = texture.image.width / texture.image.height;
+            currentImageAspectRatio = aspectRatio;
+            console.log('Initial image aspect ratio:', aspectRatio, 'dimensions:', texture.image.width, 'x', texture.image.height);
+            
+            imageTexture = texture;
+            
+            // マテリアルが作成済みの場合は更新
+            if (hologramMaterial) {
+                hologramMaterial.uniforms.tDiffuse.value = texture;
+                hologramMaterial.needsUpdate = true;
+                updateMeshAspectRatio(aspectRatio);
+            }
+        },
+        function(progress) {
+            console.log('Loading initial image:', progress);
+        },
+        function(error) {
+            console.error('Error loading initial image:', error);
+            // エラーの場合はデフォルトテクスチャを作成
+            createDefaultTexture();
+            currentImageAspectRatio = 1.0;
+            if (hologramMaterial) {
+                hologramMaterial.uniforms.tDiffuse.value = imageTexture;
+                hologramMaterial.needsUpdate = true;
+                updateMeshAspectRatio(1.0);
+            }
+        }
+    );
 }
 
 function setupDeviceMotion() {
