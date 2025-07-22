@@ -225,7 +225,7 @@ const fragmentShader3 = `
     }
 `;
 
-// エフェクト4: ビックリマン風ホログラム
+// エフェクト4: グリッド構造ホログラム
 const fragmentShader4 = `
     uniform sampler2D tDiffuse;
     uniform float time;
@@ -243,85 +243,73 @@ const fragmentShader4 = `
     }
     
     void main() {
-        vec4 texColor = texture2D(tDiffuse, vUv);
-        vec3 viewDir = normalize(vViewPosition);
+        // 7段階に対応したUVオフセット計算
+        float stepOffset = float(angleStep - 3) * 0.05;
+        vec2 shiftedUV = vUv + vec2(stepOffset, 0.0);
+        shiftedUV.x = fract(shiftedUV.x);
         
-        // ビックリマン特有の放射状パターン
-        vec2 center = vec2(0.5, 0.5);
-        vec2 toCenter = vUv - center;
-        float angle = atan(toCenter.y, toCenter.x);
-        float radius = length(toCenter);
+        vec4 texColor = texture2D(tDiffuse, shiftedUV);
         
-        // 放射状の虹色ストライプ（ビックリマンの特徴）
-        float stripeCount = 24.0; // 放射状のストライプ数
-        float stripeAngle = angle * stripeCount / (2.0 * 3.14159);
-        float stripe = fract(stripeAngle + tilt.x * 2.0);
+        // グリッド構造の設定
+        float gridSize = 16.0; // 16x16のグリッド
+        vec2 gridUV = fract(vUv * gridSize);
+        vec2 gridID = floor(vUv * gridSize);
         
-        // 同心円パターン
-        float ringCount = 8.0;
-        float ring = fract(radius * ringCount - time * 0.5 + tilt.y);
+        // 各グリッドセルの中心からの距離
+        vec2 cellCenter = gridUV - 0.5;
+        float cellRadius = length(cellCenter);
+        float cellAngle = atan(cellCenter.y, cellCenter.x);
         
-        // ビックリマン特有の虹色グラデーション
-        float hue1 = fract(stripe * 0.15 + time * 0.05 + tilt.x * 0.3);
-        float hue2 = fract(ring * 0.2 + time * 0.03 + tilt.y * 0.3);
+        // セルごとの色相オフセット（左上から右下へのグラデーション）
+        float hueOffset = (gridID.x + gridID.y) / (gridSize * 2.0);
+        hueOffset += length(tilt) * 0.5; // 傾きによる色相変化
         
-        vec3 color1 = hsv2rgb(vec3(hue1, 0.9, 1.0));
-        vec3 color2 = hsv2rgb(vec3(hue2, 0.8, 1.0));
+        // 円錐型のシェーディング（中心が明るく、周囲が暗い）
+        float conicalShading = 1.0 - smoothstep(0.0, 0.5, cellRadius);
+        conicalShading = pow(conicalShading, 2.0); // 強調
         
-        // 強い金属光沢（ビックリマンシールの特徴）
-        float metallic = pow(stripe, 2.0) * pow(ring, 2.0);
-        vec3 metallicColor = mix(vec3(1.0, 0.9, 0.5), vec3(1.0, 1.0, 1.0), metallic);
+        // 回転方向の統一（照明方向の錯覚）
+        float rotationPhase = time * 0.5 + length(tilt) * 2.0;
+        float lightDirection = cellAngle + rotationPhase;
+        float directionalLight = cos(lightDirection) * 0.5 + 0.5;
         
-        // スターバースト効果（中心から放射される光）
-        float burst = 0.0;
-        for(float i = 0.0; i < 6.0; i++) {
-            float burstAngle = i * 3.14159 / 3.0 + time * 0.5;
-            vec2 burstDir = vec2(cos(burstAngle), sin(burstAngle));
-            float burstDot = abs(dot(normalize(toCenter), burstDir));
-            burst += pow(burstDot, 20.0) * (1.0 - radius);
+        // 虹色グラデーション（左上から右下）
+        float rainbowHue = hueOffset + directionalLight * 0.3;
+        rainbowHue = fract(rainbowHue);
+        
+        // 彩度と明度の調整
+        float saturation = 0.8 + conicalShading * 0.2;
+        float brightness = 0.6 + conicalShading * 0.4 + directionalLight * 0.3;
+        
+        vec3 gridColor = hsv2rgb(vec3(rainbowHue, saturation, brightness));
+        
+        // 金属的光沢（ハイライト）
+        float metallic = pow(conicalShading, 4.0) * directionalLight;
+        vec3 highlight = vec3(1.0, 1.0, 1.0) * metallic * 0.5;
+        
+        // グリッドラインの強調（オプション）
+        float gridLine = 1.0;
+        float lineWidth = 0.05;
+        if (gridUV.x < lineWidth || gridUV.x > 1.0 - lineWidth || 
+            gridUV.y < lineWidth || gridUV.y > 1.0 - lineWidth) {
+            gridLine = 0.8;
         }
-        
-        // キラキラ粒子（ビックリマンの特徴的な輝き）
-        vec2 sparkleGrid = vUv * 30.0;
-        vec2 sparkleId = floor(sparkleGrid);
-        float sparkleRand = fract(sin(dot(sparkleId, vec2(12.9898, 78.233))) * 43758.5453);
-        float sparklePhase = sparkleRand + time * 2.0;
-        float sparkle = smoothstep(0.95, 1.0, sin(sparklePhase) * sin(sparklePhase * 1.3));
-        sparkle *= step(0.7, sparkleRand); // 一部の粒子のみキラキラ
-        
-        // 傾きによる反射の変化（ビックリマンを傾けた時の効果）
-        float tiltEffect = abs(sin(angle + tilt.x * 3.0)) * abs(cos(radius * 10.0 + tilt.y * 3.0));
         
         // 最終的な色の合成
         vec3 finalColor = texColor.rgb;
+        finalColor = mix(finalColor, gridColor, 0.6); // グリッド効果をブレンド
+        finalColor += highlight; // ハイライト追加
+        finalColor *= gridLine; // グリッドライン効果
         
-        // 放射状虹色レイヤー（透明度を上げて背景が見えるように）
-        finalColor = mix(finalColor, color1, stripe * 0.3 * (0.5 + tiltEffect * 0.5));
-        
-        // 同心円レイヤー
-        finalColor = mix(finalColor, color2, ring * 0.2);
-        
-        // 金属光沢（弱める）
-        finalColor += metallicColor * metallic * 0.3;
-        
-        // スターバースト（弱める）
-        finalColor += vec3(burst) * 0.6;
-        
-        // キラキラ粒子（弱める）
-        finalColor += vec3(sparkle) * 0.8;
-        
-        // 全体的な輝度調整（傾けるとより輝く）
-        float brightness = 1.0 + length(tilt) * 0.3;
-        finalColor *= brightness;
-        
-        // コントラスト調整（より自然に）
-        finalColor = pow(finalColor, vec3(0.95));
+        // 全体的な輝度調整
+        float overallBrightness = 1.0 + length(tilt) * 0.2;
+        finalColor *= overallBrightness;
         
         gl_FragColor = vec4(finalColor, texColor.a);
     }
 `;
 
-// レンチキュラー版シェーダー1: ビックリマンホログラム
+// レンチキュラー版シェーダー1: グリッド構造ホログラム
 const lenticularShader1 = `
     uniform sampler2D tDiffuse;
     uniform float time;
@@ -346,59 +334,61 @@ const lenticularShader1 = `
         
         vec4 texColor = texture2D(tDiffuse, shiftedUV);
         
-        // ビックリマン特有の放射状パターン
-        vec2 center = vec2(0.5, 0.5);
-        vec2 toCenter = vUv - center;
-        float angle = atan(toCenter.y, toCenter.x);
-        float radius = length(toCenter);
+        // グリッド構造の設定（角度ステップで変化）
+        float gridSize = 12.0 + float(angleStep) * 2.0; // 角度で密度変化
+        vec2 gridUV = fract(vUv * gridSize);
+        vec2 gridID = floor(vUv * gridSize);
         
-        // 角度ステップによって放射パターンが回転
-        float rotationOffset = float(angleStep) * 0.52;
+        // 各グリッドセルの中心からの距離
+        vec2 cellCenter = gridUV - 0.5;
+        float cellRadius = length(cellCenter);
+        float cellAngle = atan(cellCenter.y, cellCenter.x);
         
-        // 放射状の虹色ストライプ
-        float stripeCount = 24.0;
-        float stripeAngle = (angle + rotationOffset) * stripeCount / (2.0 * 3.14159);
-        float stripe = fract(stripeAngle + time * 0.1);
+        // セルごとの色相オフセット（角度ステップで色相が変化）
+        float hueOffset = (gridID.x + gridID.y) / (gridSize * 2.0);
+        hueOffset += float(angleStep) * 0.15; // 角度ステップによる色相シフト
         
-        // 同心円パターン
-        float ringCount = 8.0;
-        float ring = fract(radius * ringCount - time * 0.5 + float(angleStep) * 0.2);
+        // 円錐型のシェーディング（中心が明るく、周囲が暗い）
+        float conicalShading = 1.0 - smoothstep(0.0, 0.45, cellRadius);
+        conicalShading = pow(conicalShading, 1.5 + float(angleStep) * 0.1);
         
-        // 角度ステップによる色相シフト
-        float hueShift = float(angleStep) * 0.14;
-        float hue1 = fract(stripe * 0.15 + time * 0.05 + hueShift);
-        float hue2 = fract(ring * 0.2 + time * 0.03 + hueShift);
+        // 回転方向の統一（照明方向の錯覚、角度ステップで変化）
+        float rotationPhase = time * 0.3 + float(angleStep) * 0.8;
+        float lightDirection = cellAngle + rotationPhase;
+        float directionalLight = cos(lightDirection) * 0.5 + 0.5;
         
-        vec3 color1 = hsv2rgb(vec3(hue1, 0.9, 1.0));
-        vec3 color2 = hsv2rgb(vec3(hue2, 0.8, 1.0));
+        // 虹色グラデーション（左上から右下、角度で強調）
+        float rainbowHue = hueOffset + directionalLight * 0.4;
+        rainbowHue = fract(rainbowHue);
         
-        // 金属光沢
-        float metallic = pow(stripe, 2.0) * pow(ring, 2.0);
-        float metallicIntensity = 0.3 + abs(float(angleStep - 3)) * 0.1;
-        vec3 metallicColor = mix(vec3(1.0, 0.9, 0.5), vec3(1.0, 1.0, 1.0), metallic);
+        // 彩度と明度の調整（角度で変化）
+        float saturation = 0.7 + conicalShading * 0.3 + float(angleStep) * 0.02;
+        float brightness = 0.5 + conicalShading * 0.5 + directionalLight * 0.4;
         
-        // スターバースト効果（削除）
-        float burst = 0.0;
+        vec3 gridColor = hsv2rgb(vec3(rainbowHue, saturation, brightness));
         
-        // キラキラ粒子
-        vec2 sparkleGrid = vUv * (30.0 + float(angleStep) * 2.0);
-        vec2 sparkleId = floor(sparkleGrid);
-        float sparkleRand = fract(sin(dot(sparkleId, vec2(12.9898, 78.233))) * 43758.5453);
-        float sparklePhase = sparkleRand + time * 2.0 + float(angleStep) * 0.5;
-        float sparkle = smoothstep(0.95, 1.0, sin(sparklePhase) * sin(sparklePhase * 1.3));
-        sparkle *= step(0.7, sparkleRand);
+        // 金属的光沢（ハイライト、角度で強度変化）
+        float metallic = pow(conicalShading, 3.0) * directionalLight;
+        float metallicIntensity = 0.4 + abs(float(angleStep - 3)) * 0.1;
+        vec3 highlight = vec3(1.0, 1.0, 1.0) * metallic * metallicIntensity;
         
-        float angleFactor = abs(float(angleStep - 3)) / 3.0;
-        float tiltEffect = sin(angle + rotationOffset) * cos(radius * 10.0);
+        // グリッドラインの強調（角度で変化）
+        float gridLine = 1.0;
+        float lineWidth = 0.03 + float(angleStep) * 0.005;
+        if (gridUV.x < lineWidth || gridUV.x > 1.0 - lineWidth || 
+            gridUV.y < lineWidth || gridUV.y > 1.0 - lineWidth) {
+            gridLine = 0.7 + float(angleStep) * 0.05;
+        }
         
+        // 最終的な色の合成
         vec3 finalColor = texColor.rgb;
-        finalColor = mix(finalColor, color1, stripe * 0.3 * (0.5 + abs(tiltEffect) * 0.5));
-        finalColor = mix(finalColor, color2, ring * 0.2);
-        finalColor += metallicColor * metallic * metallicIntensity;
-        finalColor += vec3(sparkle) * (0.8 + angleFactor * 0.8);
+        finalColor = mix(finalColor, gridColor, 0.7); // グリッド効果をブレンド
+        finalColor += highlight; // ハイライト追加
+        finalColor *= gridLine; // グリッドライン効果
         
+        // 角度による全体的な輝度調整
+        float angleFactor = abs(float(angleStep - 3)) / 3.0;
         float brightness = 1.0 + angleFactor * 0.3;
-        finalColor *= brightness;
         
         gl_FragColor = vec4(finalColor, texColor.a);
     }
@@ -406,7 +396,7 @@ const lenticularShader1 = `
 
 const fragmentShaders = [fragmentShader1, fragmentShader2, fragmentShader3, fragmentShader4];
 const lenticularShaders = [lenticularShader1, lenticularShader1, lenticularShader1, lenticularShader1]; // 暫定的に全てレンチキュラー版使用
-const effectNames = ['レインボーホログラム', 'プリズムダイヤモンド', 'オーロラウェーブ', 'ビックリマンホログラム'];
+const effectNames = ['レインボーホログラム', 'プリズムダイヤモンド', 'オーロラウェーブ', 'グリッドホログラム'];
 
 function init() {
     // シーンの作成
