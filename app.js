@@ -18,11 +18,11 @@ let betaOffset = 0; // 上下角度のオフセット
 // 3×3=9段階の画像ファイル配列
 const imageMatrix = [
     // [上大, 上小, 中央, 下小, 下大]
-    [null, null, '-25.png', null, null], // 左大
+    ['UL25.png', null, '-25.png', null, null], // 左大
     [null, 'UL12.png', '-12.png', 'b12.png', null], // 左小
-    ['UR25.png', 'u12.png', 'front.png', 'b12.png', 'b25.png'], // 中央
+    ['u25.png', 'u12.png', 'front.png', 'b12.png', 'b25.png'], // 中央
     [null, 'UR12.png', '12.png', 'b12.png', null], // 右小
-    [null, null, '25.png', null, null]  // 右大
+    ['UR25.png', null, '25.png', null, null]  // 右大
 ];
 
 // 表示用の名前
