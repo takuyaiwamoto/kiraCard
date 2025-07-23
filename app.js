@@ -19,9 +19,9 @@ let betaOffset = 0; // 上下角度のオフセット
 const imageMatrix = [
     // [上大, 上小, 中央, 下小, 下大]
     [null, null, '-25.png', null, null], // 左大
-    [null, 'u12.png', '-12.png', 'b12.png', null], // 左小
-    ['u25.png', 'u12.png', 'front.png', 'b12.png', 'b25.png'], // 中央
-    [null, 'u12.png', '12.png', 'b12.png', null], // 右小
+    [null, 'UL12.png', '-12.png', 'b12.png', null], // 左小
+    ['UR25.png', 'u12.png', 'front.png', 'b12.png', 'b25.png'], // 中央
+    [null, 'UR12.png', '12.png', 'b12.png', null], // 右小
     [null, null, '25.png', null, null]  // 右大
 ];
 
